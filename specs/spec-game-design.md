@@ -1,6 +1,6 @@
 # Lengle — Game Design Specification
 
-> Version 1.0 — This document defines all game behaviour and user acceptance criteria. It is implementation-agnostic.
+> Version 1.1 — This document defines all game behaviour and user acceptance criteria. It is implementation-agnostic.
 
 ---
 
@@ -37,8 +37,13 @@ Lengle is a private, daily multiplayer word puzzle game for exactly 3 players. E
 ### 3.3 Puzzle Unlock
 - Guessing is locked for all players until all 3 players have submitted their word for the day
 - While waiting, a lobby screen shows the submission status of all 3 players (name visible, ✅ submitted or ⏳ pending)
+- The lobby status refreshes automatically so players see when others have submitted without needing to manually reload
 - Once all 3 words are submitted, guessing unlocks for all players simultaneously
 - There is no notification mechanism — players check the app in their own time
+
+### 3.4 Day Transition
+- When the clock passes 4am and a new puzzle date becomes active, the previous day's puzzle words become part of the historical record and are freely visible in Word History
+- Any player who opens the app after the transition triggers the finalisation of the previous day's results if not already done
 
 ---
 
@@ -65,6 +70,7 @@ Lengle is a private, daily multiplayer word puzzle game for exactly 3 players. E
 - A single bundled English word list is used for both puzzle word validation and guess validation
 - The word list is static and does not change at runtime
 - The word list should contain common, recognisable English words — obscure or highly technical words should be excluded to keep the game accessible
+- The word list must not include plural forms of shorter words — words that are simply the plural of a 4-letter or shorter root word (e.g. "plans", "words", "birds", "hands") are excluded. Words ending in 's' that are not plurals of a shorter base word remain valid (e.g. "grass", "dress", "cross", "chess", "focus").
 
 ---
 
@@ -163,6 +169,7 @@ Each guess produces a numeric score calculated independently across all 5 letter
 - A message indicates who still needs to set their word: `"Waiting for [Name] to set their word…"`
 - The status list is shown
 - No guessing is available
+- The lobby polls for updates so the player sees when others submit without refreshing
 
 **State C — All 3 words are set:**
 - A "Play Today's Puzzles" button is shown prominently
@@ -208,7 +215,7 @@ Three tabs: **Today**, **All Time**, **Trends**
 - Highlights the daily winner (or joint winners)
 - A table showing each player's guess count per puzzle and their total daily score
 - Per-puzzle winner indicated inline
-- Updates in real time as players complete puzzles throughout the day
+- Updates as players complete puzzles throughout the day
 
 #### All Time Tab
 - Total daily wins per player (joint wins count for all tied players)
@@ -234,7 +241,7 @@ Three tabs: **Today**, **All Time**, **Trends**
   - Each puzzle word and who set it
   - The daily winner
   - Each player's full guess breakdown for each puzzle: every guess made, the per-letter scores, the total score per guess, and how many guesses it took to solve
-- Current day's words are **not** shown in word history until the puzzle day has ended (i.e. after 4am the following day)
+- Current day's words and guesses are **not** shown in Word History until the puzzle day has ended (i.e. after 4am the following day)
 - Unsolved puzzles from past days show the word and the player's incomplete guess history with a "Not solved" label
 
 ---
@@ -256,11 +263,13 @@ Three tabs: **Today**, **All Time**, **Trends**
 | AC-11 | Full guess history is mutually visible only to players who have both solved the same puzzle |
 | AC-12 | The daily winner is the player with the lowest total guess count across both puzzles |
 | AC-13 | Joint winners are supported at both puzzle and daily level |
-| AC-14 | Today's puzzle words do not appear in Word History until the following day after 4am |
+| AC-14 | Today's puzzle words and guesses do not appear in Word History until the following day after 4am |
 | AC-15 | The app never displays a timer anywhere |
 | AC-16 | The daily reset occurs at 4am local device time |
 | AC-17 | The last selected player name is remembered across visits |
 | AC-18 | Per-letter scores are shown alongside the total score for every guess |
+| AC-19 | The lobby status updates automatically without a manual page refresh |
+| AC-20 | The first player to open the app after 4am triggers finalisation of the previous day's results if not already written |
 
 ---
 

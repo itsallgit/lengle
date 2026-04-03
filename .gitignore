@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# CDK synthesis output
+infra/cdk.out/
+
+# TypeScript compiled output (ts-node is used for CDK execution, no pre-compile needed)
+infra/**/*.js
+infra/**/*.d.ts
+
+# App build output (Phase 2)
+app/dist/
+
+# Environment variables — never commit (contain AWS resource IDs)
+app/.env.local
+
+# CDK deploy outputs — contain AWS resource IDs, not secrets but not needed in repo
+cdk-outputs.json
+
+# OS
+.DS_Store
+Thumbs.db

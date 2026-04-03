@@ -1,0 +1,23 @@
+{
+  "app": "npx ts-node --prefer-ts-exts bin/lengle.ts",
+  "watch": {
+    "include": ["**"],
+    "exclude": [
+      "README.md",
+      "cdk*.json",
+      "**/*.d.ts",
+      "**/*.js",
+      "tsconfig.json",
+      "package*.json",
+      "node_modules",
+      "cdk.out"
+    ]
+  },
+  "context": {
+    "customDomain": {
+      "enabled": false,
+      "domainName": "lengle.yourdomain.com",
+      "hostedZoneId": ""
+    }
+  }
+}
