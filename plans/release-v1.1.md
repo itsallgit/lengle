@@ -7,7 +7,7 @@
 | Release | v1.1 |
 | Branch | release/v1.1 |
 | Date | 2026-04-05 |
-| Status | In Progress |
+| Status | Done |
 
 ### Summary
 This release improves the core gameplay experience on four fronts: richer per-guess feedback (green/yellow/grey letter counts, à la Wordle), a simpler and fairer social panel (remove the ability to see other players' actual guesses — just show count and solved status), a mobile-first layout overhaul that removes card borders and fixes horizontal overflow, and a Wordle-style dark header / neutral colour palette replacing the current indigo branding. The nav bar is also replaced with an animated dropdown menu for cleaner mobile UX.
