@@ -13,15 +13,15 @@ export default function OthersPanel({ others }: OthersPanelProps) {
   if (others.length === 0) return null
 
   return (
-    <div className="border-t border-gray-200 mt-3 pt-3">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+        className="mt-4 flex w-full items-center justify-between rounded-xl bg-gray-100 px-4 py-2.5 hover:bg-gray-200 active:bg-gray-300"
         aria-expanded={open}
       >
-        <span>{open ? '▾' : '▸'}</span>
-        <span>Others</span>
+        <span className="text-sm font-medium text-gray-700">Others</span>
+        <span className="text-xs text-gray-400">{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (

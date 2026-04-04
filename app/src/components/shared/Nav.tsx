@@ -41,9 +41,7 @@ export function NavMenu() {
 
       {/* Dropdown — always in DOM, animated via max-height */}
       <div
-        className={`absolute top-full right-0 w-48 bg-gray-900 border border-gray-700 rounded-b-lg shadow-lg z-50 overflow-hidden transition-all duration-200 ease-in-out ${
-          open ? 'max-h-48' : 'max-h-0'
-        }`}
+        className={`absolute top-full right-0 w-48 bg-gray-900 rounded-b-lg shadow-lg z-50 overflow-hidden transition-all duration-200 ease-in-out ${open ? 'max-h-48 border border-gray-700' : 'max-h-0'}`}
         aria-hidden={!open}
       >
         {NAV_LINKS.map(({ to, label }) => (

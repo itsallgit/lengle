@@ -16,13 +16,6 @@ export default function GuessRow({ word, total, perLetterScores }: GuessRowProps
   const yellow = perLetterScores.filter((s) => s === CONFIG.scoring.correctLetter).length
   const grey = perLetterScores.filter((s) => s === CONFIG.scoring.notInWord).length
 
-  // Build sorted array of mini square colours: green first, then yellow, then grey
-  const miniSquares: string[] = [
-    ...Array(green).fill('bg-green-500'),
-    ...Array(yellow).fill('bg-orange-400'),
-    ...Array(grey).fill('bg-gray-200'),
-  ]
-
   return (
     <div className="flex items-center gap-2">
       <div className="flex gap-1.5">
@@ -36,14 +29,29 @@ export default function GuessRow({ word, total, perLetterScores }: GuessRowProps
           </div>
         ))}
       </div>
-      <div className="flex gap-0.5">
-        {miniSquares.map((colour, i) => (
-          <div key={i} className={`h-3 w-3 rounded-sm ${colour}`} />
-        ))}
+      <div className="flex flex-col gap-0.5">
+        {green > 0 && (
+          <div className="flex gap-0.5">
+            {Array.from({ length: green }).map((_, i) => (
+              <div key={i} className="h-3 w-3 rounded-sm bg-green-500" />
+            ))}
+          </div>
+        )}
+        {yellow > 0 && (
+          <div className="flex gap-0.5">
+            {Array.from({ length: yellow }).map((_, i) => (
+              <div key={i} className="h-3 w-3 rounded-sm bg-orange-400" />
+            ))}
+          </div>
+        )}
+        {grey > 0 && (
+          <div className="flex gap-0.5">
+            {Array.from({ length: grey }).map((_, i) => (
+              <div key={i} className="h-3 w-3 rounded-sm bg-gray-200" />
+            ))}
+          </div>
+        )}
       </div>
-      {!isCorrect && (
-        <span className="text-xs text-gray-400 font-normal">({total})</span>
-      )}
     </div>
   )
 }

@@ -67,12 +67,12 @@ export default function WordSetForm({ label, usedWords, onSubmit }: Props) {
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-lg uppercase tracking-widest text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-lg uppercase tracking-widest text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
         />
         <button
           type="submit"
           disabled={value.length !== CONFIG.wordLength || submitting}
-          className="rounded-md bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-md bg-gray-900 px-5 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {submitting ? 'Saving…' : 'Submit'}
         </button>
