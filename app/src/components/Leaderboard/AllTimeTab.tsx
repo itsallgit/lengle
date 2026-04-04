@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react'
+import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
 import { getActivePuzzleDate } from '../../lib/date'
 import { listS3Keys, readJson } from '../../lib/s3'
 import type { DayResults, PlayerGuesses } from '../../types'
-
-function getPlayerName(id: string): string {
-  return CONFIG.players.find((p) => p.id === id)?.name ?? id
-}
 
 interface AllTimeStats {
   totalWins: Record<string, number>
@@ -78,6 +75,14 @@ function computeStreaks(
 export default function AllTimeTab() {
   const [stats, setStats] = useState<AllTimeStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const { playerEmojis } = usePlayer()
+
+  function getPlayerDisplay(id: string): string {
+    const player = CONFIG.players.find((p) => p.id === id)
+    if (!player) return id
+    const emoji = playerEmojis[id] ?? player.defaultEmoji
+    return `${emoji} ${player.name}`
+  }
 
   useEffect(() => {
     async function load() {
@@ -274,7 +279,7 @@ export default function AllTimeTab() {
           <div className="rounded-md bg-gray-50 px-4 py-3 text-sm">
             <span className="mr-2">🏆</span>
             <span className="font-semibold">Best Setter:</span>{' '}
-            {getPlayerName(stats.bestSetter.playerId)}{' '}
+            {getPlayerDisplay(stats.bestSetter.playerId)}{' '}
             <span className="text-gray-500">
               ({stats.bestSetter.avg.toFixed(1)} avg guesses required)
             </span>
@@ -284,7 +289,7 @@ export default function AllTimeTab() {
           <div className="rounded-md bg-gray-50 px-4 py-3 text-sm">
             <span className="mr-2">🎯</span>
             <span className="font-semibold">Sharpest Guesser:</span>{' '}
-            {getPlayerName(stats.sharpestGuesser.playerId)}{' '}
+            {getPlayerDisplay(stats.sharpestGuesser.playerId)}{' '}
             <span className="text-gray-500">
               ({stats.sharpestGuesser.avg.toFixed(1)} avg guesses per puzzle)
             </span>
@@ -311,7 +316,7 @@ export default function AllTimeTab() {
             {CONFIG.players.map((player) => (
               <tr key={player.id} className="border-b border-gray-100">
                 <td className="py-2 font-medium text-gray-900">
-                  {player.name}
+                  {getPlayerDisplay(player.id)}
                 </td>
                 <td className="py-2 text-right text-gray-700">
                   {stats.totalWins[player.id] ?? 0}
@@ -344,7 +349,7 @@ export default function AllTimeTab() {
             {CONFIG.players.map((player) => (
               <tr key={player.id} className="border-b border-gray-100">
                 <td className="py-2 font-medium text-gray-900">
-                  {player.name}
+                  {getPlayerDisplay(player.id)}
                 </td>
                 <td className="py-2 text-right text-gray-700">
                   {stats.avgGuessesPerPuzzle[player.id] > 0

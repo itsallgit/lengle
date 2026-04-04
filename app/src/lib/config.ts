@@ -1,8 +1,8 @@
 export const CONFIG = {
   players: [
-    { id: 'player_1', name: 'Alex' },
-    { id: 'player_2', name: 'Mum' },
-    { id: 'player_3', name: 'Dad' },
+    { id: 'player_1', name: 'Troy', defaultEmoji: '🎯' },
+    { id: 'player_2', name: 'Mum', defaultEmoji: '🌸' },
+    { id: 'player_3', name: 'Dad', defaultEmoji: '⚡' },
   ],
   scoring: {
     correctPosition: 0,  // +0: correct letter, correct position

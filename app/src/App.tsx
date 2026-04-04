@@ -1,5 +1,7 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { CONFIG } from './lib/config'
+import { readJson, writeToS3 } from './lib/s3'
 import PlayerSelect from './components/PlayerSelect/PlayerSelect'
 import Lobby from './components/Lobby/Lobby'
 import PuzzleView from './components/Puzzles/PuzzleView'
@@ -14,18 +16,26 @@ export interface PlayerContextValue {
   playerId: string | null
   /** Persist the selected player ID to state and localStorage. */
   setPlayerId: (id: string | null) => void
+  /** Map of player ID → currently active emoji (may differ from defaultEmoji if customised). */
+  playerEmojis: Record<string, string>
+  /** Persist a new emoji for the given player to state and S3. */
+  setPlayerEmoji: (playerId: string, emoji: string) => Promise<void>
 }
 
 /**
  * Exported so any component can consume the current player without prop-drilling.
  * Do not import PlayerContext directly — use the usePlayer() hook below.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const PlayerContext = createContext<PlayerContextValue>({
   playerId: null,
   setPlayerId: () => undefined,
+  playerEmojis: {},
+  setPlayerEmoji: async () => undefined,
 })
 
 /** Convenience hook for consuming PlayerContext. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePlayer(): PlayerContextValue {
   return useContext(PlayerContext)
 }
@@ -77,8 +87,26 @@ export default function App() {
     () => localStorage.getItem('lengle_player_id'),
   )
 
+  const [playerEmojis, setPlayerEmojis] = useState<Record<string, string>>(
+    () => Object.fromEntries(CONFIG.players.map((p) => [p.id, p.defaultEmoji])),
+  )
+
+  useEffect(() => {
+    readJson<Record<string, string>>('data/players/profiles.json')
+      .then((profiles) => {
+        if (profiles) setPlayerEmojis((prev) => ({ ...prev, ...profiles }))
+      })
+      .catch(() => undefined)
+  }, [])
+
+  async function setPlayerEmoji(pid: string, emoji: string): Promise<void> {
+    const updated = { ...playerEmojis, [pid]: emoji }
+    setPlayerEmojis(updated)
+    await writeToS3('data/players/profiles.json', updated)
+  }
+
   return (
-    <PlayerContext.Provider value={{ playerId, setPlayerId }}>
+    <PlayerContext.Provider value={{ playerId, setPlayerId, playerEmojis, setPlayerEmoji }}>
       <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>

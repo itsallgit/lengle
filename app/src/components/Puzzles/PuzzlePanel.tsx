@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
 import { readJson, writeToS3 } from '../../lib/s3'
 import { scoreGuess } from '../../lib/scoring'
@@ -34,7 +35,10 @@ export default function PuzzlePanel({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const isSolved = myGuesses.some((g) => g.is_correct)
-  const setterName = CONFIG.players.find((p) => p.id === setterId)?.name ?? setterId
+  const setterPlayer = CONFIG.players.find((p) => p.id === setterId)
+  const { playerEmojis } = usePlayer()
+  const setterEmoji = setterPlayer ? (playerEmojis[setterId] ?? setterPlayer.defaultEmoji) : ''
+  const setterName = setterPlayer ? `${setterEmoji} ${setterPlayer.name}` : setterId
 
   // Refetches the other guesser's guesses (filtered to this puzzle).
   // Called after a correct guess to pick up newly visible rows — AC-11.
@@ -136,19 +140,19 @@ export default function PuzzlePanel({
 
   if (isLoading) {
     return (
-      <div className="border border-gray-200 rounded-lg p-4">
-        <h2 className="font-semibold text-lg mb-2">{setterName}'s word</h2>
-        <p className="text-sm text-gray-400">Loading…</p>
+      <div className="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm">
+        <h2 className="mb-2 text-lg font-bold text-indigo-700">Loading…</h2>
+        <p className="text-sm text-gray-400">Fetching puzzle…</p>
       </div>
     )
   }
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
-      <h2 className="font-semibold text-lg mb-3">
-        {setterName}'s word
+    <div className="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm">
+      <h2 className="mb-4 text-lg font-bold text-indigo-700">
+        {setterName}&apos;s word
         {isSolved && targetWord && (
-          <span className="ml-3 font-mono text-base font-bold text-green-700">
+          <span className="ml-3 font-mono tracking-widest text-emerald-600">
             {targetWord}
           </span>
         )}
@@ -156,10 +160,10 @@ export default function PuzzlePanel({
 
       <GuessList guesses={myGuesses} />
 
-      <div className="mt-3">
+      <div className="mt-4">
         {isSolved ? (
-          <p className="font-medium text-green-700">
-            Solved in {myGuesses.length} guesses 🎉
+          <p className="font-semibold text-emerald-600">
+            Solved in {myGuesses.length} {myGuesses.length === 1 ? 'guess' : 'guesses'} 🎉
           </p>
         ) : (
           <GuessInput

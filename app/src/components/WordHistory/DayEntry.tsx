@@ -1,14 +1,11 @@
 import { useState } from 'react'
+import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
 import type { GuessEntry } from '../../types'
 import type { DayHistoryData } from './WordHistory'
 
 interface Props {
   day: DayHistoryData
-}
-
-function getPlayerName(id: string): string {
-  return CONFIG.players.find((p) => p.id === id)?.name ?? id
 }
 
 function formatDate(dateStr: string): string {
@@ -22,15 +19,12 @@ function formatDate(dateStr: string): string {
   })
 }
 
-/** Displays a single guess row: word, per-letter scores, total. */
+/** Displays a single guess row: word and total score. */
 function GuessHistoryRow({ guess }: { guess: GuessEntry }) {
   return (
     <div className="flex items-baseline gap-2 font-mono text-xs">
       <span className="w-12 font-semibold tracking-widest text-gray-900">
         {guess.word}
-      </span>
-      <span className="text-gray-500">
-        [{guess.per_letter_scores.join(', ')}]
       </span>
       <span className="font-semibold text-gray-700">= {guess.score}</span>
       {guess.is_correct && (
@@ -88,11 +82,19 @@ function PuzzleGuessBlock({
 
 export default function DayEntry({ day }: Props) {
   const [expanded, setExpanded] = useState(false)
+  const { playerEmojis } = usePlayer()
+
+  function getPlayerDisplay(id: string): string {
+    const player = CONFIG.players.find((p) => p.id === id)
+    if (!player) return id
+    const emoji = playerEmojis[id] ?? player.defaultEmoji
+    return `${emoji} ${player.name}`
+  }
 
   const dailyWinners =
     day.results?.player_results
       .filter((r) => r.is_daily_winner)
-      .map((r) => getPlayerName(r.player_id)) ?? []
+      .map((r) => getPlayerDisplay(r.player_id)) ?? []
 
   return (
     <div className="rounded-md border border-gray-200">
@@ -126,7 +128,7 @@ export default function DayEntry({ day }: Props) {
               <div key={setter.id} className="mb-5 last:mb-0">
                 {/* Puzzle word */}
                 <p className="text-sm font-semibold text-gray-900">
-                  {setter.name}&apos;s word:{' '}
+                  {getPlayerDisplay(setter.id)}&apos;s word:{' '}
                   {wordFile ? (
                     <span className="font-mono tracking-widest">
                       {wordFile.word}
@@ -154,7 +156,7 @@ export default function DayEntry({ day }: Props) {
                   return (
                     <PuzzleGuessBlock
                       key={guesser.id}
-                      guesserName={guesser.name}
+                      guesserName={getPlayerDisplay(guesser.id)}
                       setterId={setter.id}
                       guessEntries={pg.guesses}
                     />

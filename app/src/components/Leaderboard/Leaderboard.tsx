@@ -10,13 +10,13 @@ export default function Leaderboard() {
   const [activeTab, setActiveTab] = useState<Tab>('today')
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="mx-auto max-w-lg px-4 py-6">
-        <h1 className="mb-4 text-xl font-bold text-gray-900">Leaderboard</h1>
+      <div className="w-full px-4 py-6">
+        <h1 className="mb-4 text-2xl font-black text-indigo-700">Leaderboard</h1>
 
         {/* Tab bar */}
-        <div className="mb-6 flex border-b border-gray-200">
+        <div className="mb-6 flex gap-1 rounded-xl bg-indigo-100 p-1">
           {(
             [
               { id: 'today', label: 'Today' },
@@ -29,8 +29,8 @@ export default function Leaderboard() {
               onClick={() => setActiveTab(id)}
               className={
                 activeTab === id
-                  ? 'border-b-2 border-gray-900 px-4 pb-3 pt-1 text-sm font-semibold text-gray-900'
-                  : 'border-b-2 border-transparent px-4 pb-3 pt-1 text-sm font-medium text-gray-500 hover:text-gray-800'
+                  ? 'flex-1 rounded-lg bg-indigo-600 py-2 text-sm font-bold text-white shadow'
+                  : 'flex-1 rounded-lg py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50'
               }
             >
               {label}

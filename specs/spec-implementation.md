@@ -58,11 +58,17 @@ lengle/
 ├── specs/
 │   ├── spec-game-design.md          ← All game rules and acceptance criteria
 │   └── spec-implementation.md       ← Technical architecture and conventions
+├── plans/
+│   └── release-v1.0.md              ← Release plan (one file per release)
 ├── .github/
 │   ├── copilot-instructions.md          ← Repo-level Copilot instructions
+│   ├── agents/
+│   │   └── release-agent.agent.md       ← Release Agent custom agent
 │   └── prompts/
-│       ├── update-game.prompt.md        ← Copilot prompt: make game changes
-│       └── deploy.prompt.md             ← Copilot prompt: deploy to production
+│       ├── deploy.prompt.md             ← Copilot prompt: deploy to production
+│       ├── backup-game-data.prompt.md   ← Copilot prompt: backup S3 data
+│       ├── delete-game-data.prompt.md   ← Copilot prompt: delete S3 data
+│       └── restore-game-data.prompt.md  ← Copilot prompt: restore S3 data from backup
 ├── infra/
 │   ├── bin/
 │   │   └── lengle.ts                    ← CDK app entry point
@@ -94,7 +100,11 @@ lengle/
 │   ├── .env.local.example               ← Template for environment variables
 │   └── package.json
 ├── scripts/
-│   └── deploy.sh                        ← Build + upload to S3
+│   ├── deploy.sh                        ← Build + upload to S3
+│   ├── backup-data.sh                   ← Backup S3 data to backups/ folder
+│   ├── delete-data.sh                   ← Delete all S3 game data
+│   └── restore-data.sh                  ← Restore S3 data from a backup
+├── backups/                             ← Git-committed S3 data backups (timestamped)
 ├── players.json                         ← Bootstrap file for initial S3 upload
 └── README.md
 ```
@@ -272,14 +282,23 @@ The lobby must detect when other players submit their words without a page refre
 
 ### 5.8 JSON Schemas
 
-#### `data/players.json`
+#### `data/players.json` (bootstrap)
 ```json
 {
   "players": [
-    { "id": "player_1", "name": "Alex" },
+    { "id": "player_1", "name": "Troy" },
     { "id": "player_2", "name": "Mum" },
     { "id": "player_3", "name": "Dad" }
   ]
+}
+```
+
+#### `data/players/profiles.json` (emoji preferences)
+```json
+{
+  "player_1": "🎯",
+  "player_2": "🌸",
+  "player_3": "⚡"
 }
 ```
 
@@ -380,9 +399,9 @@ All tuneable values are centralised here. **Never hardcode player names, IDs, or
 ```typescript
 export const CONFIG = {
   players: [
-    { id: 'player_1', name: 'Alex' },
-    { id: 'player_2', name: 'Mum' },
-    { id: 'player_3', name: 'Dad' },
+    { id: 'player_1', name: 'Troy', defaultEmoji: '🎯' },
+    { id: 'player_2', name: 'Mum', defaultEmoji: '🌸' },
+    { id: 'player_3', name: 'Dad', defaultEmoji: '⚡' },
   ],
   scoring: {
     correctPosition: 0,   // +0 for correct letter, correct position
@@ -487,7 +506,13 @@ src/components/
     └── Nav.tsx
 ```
 
-**Player context:** Use React Context API to share the selected player ID app-wide. Define `PlayerContext` in `App.tsx` and export it. All components that need the current player ID must consume this context — do not prop-drill player ID through component trees.
+**Player context:** `PlayerContext` is defined in `App.tsx` and exported. It provides:
+- `playerId: string | null` — the currently selected player ID
+- `setPlayerId` — persists the selection
+- `playerEmojis: Record<string, string>` — map of player ID to currently active emoji (initialized from `config.ts` `defaultEmoji` values; overridden by `data/players/profiles.json` when loaded)
+- `setPlayerEmoji(playerId, emoji)` — updates state and writes the updated map to S3 at `data/players/profiles.json`
+
+All components that need the current player or emoji data must consume this context via the `usePlayer()` hook — do not prop-drill these values through component trees.
 
 **Trends tab filters:** The `TrendsTab` component must include two `<select>` controls:
 - Player filter: options are `All Players` + one option per player name

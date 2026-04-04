@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
 import type { GuessEntry } from '../../types'
 import GuessList from './GuessList'
@@ -16,6 +17,7 @@ export default function OthersPanel({
   othersGuesses,
 }: OthersPanelProps) {
   const [open, setOpen] = useState(false)
+  const { playerEmojis } = usePlayer()
 
   const otherEntries = Object.entries(othersGuesses)
 
@@ -37,7 +39,8 @@ export default function OthersPanel({
         <div className="mt-2 space-y-3 pl-4">
           {otherEntries.map(([guesserId, guesses]) => {
             const player = CONFIG.players.find((p) => p.id === guesserId)
-            const displayName = player?.name ?? guesserId
+            const emoji = player ? (playerEmojis[guesserId] ?? player.defaultEmoji) : ''
+            const displayName = player ? `${emoji} ${player.name}` : guesserId
             const totalGuessCount = guesses.length
             const otherHasSolved = guesses.some((g) => g.is_correct)
 

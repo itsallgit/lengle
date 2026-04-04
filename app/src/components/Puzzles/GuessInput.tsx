@@ -40,7 +40,7 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
   const canSubmit = value.length === CONFIG.wordLength && !disabled
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-1">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
       <div className="flex gap-2">
         <input
           type="text"
@@ -48,22 +48,23 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
           onChange={handleChange}
           disabled={disabled}
           maxLength={CONFIG.wordLength}
-          className="border border-gray-300 rounded px-3 py-2 font-mono uppercase tracking-widest w-40 disabled:opacity-50"
+          className="flex-1 rounded-xl border-2 border-indigo-200 bg-white px-4 py-3 text-center text-lg font-bold uppercase tracking-widest text-indigo-900 placeholder-indigo-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:opacity-50"
           aria-label="Enter guess"
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}
+          placeholder="GUESS"
         />
         <button
           type="submit"
           disabled={!canSubmit}
-          className="px-4 py-2 bg-gray-800 text-white rounded disabled:opacity-40"
+          className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:opacity-40"
         >
-          Submit
+          Go
         </button>
       </div>
       {error && (
-        <p className="text-red-600 text-sm" role="alert">
+        <p className="text-sm font-medium text-red-600" role="alert">
           {error}
         </p>
       )}
