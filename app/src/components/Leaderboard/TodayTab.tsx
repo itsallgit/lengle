@@ -155,7 +155,7 @@ export default function TodayTab() {
       {/* Per-puzzle tables */}
       {puzzleStats.map((puzzle) => (
         <div key={puzzle.setterId} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-sm font-bold text-indigo-700">
+          <h2 className="mb-3 text-sm font-bold text-gray-900">
             {puzzle.setterDisplay}&apos;s Puzzle
           </h2>
           <table className="w-full text-sm">
@@ -177,7 +177,7 @@ export default function TodayTab() {
                       <td className="py-2 font-medium text-gray-900">
                         {getPlayerDisplay(guesser.id)}
                       </td>
-                      <td className="py-2 text-right font-bold text-indigo-700">
+                      <td className="py-2 text-right font-bold text-gray-900">
                         {count !== null ? count : '—'}
                       </td>
                       <td className="py-2 text-right">
@@ -193,7 +193,7 @@ export default function TodayTab() {
 
       {/* Daily scores table */}
       <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-bold text-indigo-700">
+        <h2 className="mb-3 text-sm font-bold text-gray-900">
           Daily Totals
         </h2>
         <table className="w-full text-sm">
@@ -213,7 +213,7 @@ export default function TodayTab() {
                   <td className="py-2 font-medium text-gray-900">
                     {row.playerDisplay}
                   </td>
-                  <td className="py-2 text-right font-bold text-indigo-700">
+                  <td className="py-2 text-right font-bold text-gray-900">
                     {row.solved > 0 ? row.total : '—'}
                   </td>
                   <td className="py-2 text-right text-gray-700">

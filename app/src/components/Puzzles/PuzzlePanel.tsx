@@ -33,6 +33,7 @@ export default function PuzzlePanel({
   const [othersInfo, setOthersInfo] = useState<Record<string, { guessCount: number; solved: boolean }>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [expanded, setExpanded] = useState(true)
 
   const isSolved = myGuesses.some((g) => g.is_correct)
   const setterPlayer = CONFIG.players.find((p) => p.id === setterId)
@@ -128,43 +129,66 @@ export default function PuzzlePanel({
 
   if (isLoading) {
     return (
-      <div className="py-2">
-        <h2 className="mb-2 text-lg font-bold text-gray-900">Loading…</h2>
-        <p className="text-sm text-gray-400">Fetching puzzle…</p>
+      <div>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between py-4 text-left"
+          disabled
+        >
+          <span className="text-lg font-bold text-gray-900">Loading…</span>
+        </button>
       </div>
     )
   }
 
   return (
-    <div className="py-2">
-      <h2 className="mb-4 text-lg font-bold text-gray-900">
-        {setterName}&apos;s word
+    <div>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between py-4 text-left"
+        aria-expanded={expanded}
+      >
+        <span className="text-lg font-bold text-gray-900">{setterName}&apos;s word</span>
+        <div className="flex items-center gap-3">
+          {isSolved
+            ? <span className="text-sm text-green-600 font-semibold">✓ {myGuesses.length} {myGuesses.length === 1 ? 'guess' : 'guesses'}</span>
+            : myGuesses.length > 0
+              ? <span className="text-sm text-gray-500">{myGuesses.length} {myGuesses.length === 1 ? 'guess' : 'guesses'}</span>
+              : null
+          }
+          <span className="text-gray-400 text-sm">{expanded ? '▲' : '▼'}</span>
+        </div>
+      </button>
+
+      <div
+        className={`overflow-hidden transition-all duration-200 ease-in-out ${
+          expanded ? 'max-h-[2000px]' : 'max-h-0'
+        }`}
+      >
         {isSolved && targetWord && (
-          <span className="ml-3 font-mono tracking-widest text-green-600">
-            {targetWord}
-          </span>
+          <p className="mb-3 font-mono tracking-widest text-green-600 text-lg">{targetWord}</p>
         )}
-      </h2>
+        <GuessList guesses={myGuesses} />
 
-      <GuessList guesses={myGuesses} />
+        <div className="mt-4">
+          {isSolved ? (
+            <p className="font-semibold text-green-600">
+              Solved in {myGuesses.length} {myGuesses.length === 1 ? 'guess' : 'guesses'} 🎉
+            </p>
+          ) : (
+            <GuessInput
+              onSubmit={handleGuessSubmit}
+              disabled={isSubmitting || !targetWord}
+              ownWord={ownWord}
+            />
+          )}
+        </div>
 
-      <div className="mt-4">
-        {isSolved ? (
-          <p className="font-semibold text-green-600">
-            Solved in {myGuesses.length} {myGuesses.length === 1 ? 'guess' : 'guesses'} 🎉
-          </p>
-        ) : (
-          <GuessInput
-            onSubmit={handleGuessSubmit}
-            disabled={isSubmitting || !targetWord}
-            ownWord={ownWord}
-          />
-        )}
+        <OthersPanel
+          others={Object.entries(othersInfo).map(([id, info]) => ({ playerId: id, ...info }))}
+        />
       </div>
-
-      <OthersPanel
-        others={Object.entries(othersInfo).map(([id, info]) => ({ playerId: id, ...info }))}
-      />
     </div>
   )
 }

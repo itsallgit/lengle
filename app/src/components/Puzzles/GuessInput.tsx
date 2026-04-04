@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { CONFIG } from '../../lib/config'
 import WORD_LIST from '../../words/wordlist'
 
@@ -11,6 +11,7 @@ interface GuessInputProps {
 export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputProps) {
   const [value, setValue] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const upper = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase()
@@ -35,6 +36,8 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
     onSubmit(word)
     setValue('')
     setError(null)
+    // Restore focus so mobile keyboard stays active for the next guess
+    requestAnimationFrame(() => { inputRef.current?.focus() })
   }
 
   const canSubmit = value.length === CONFIG.wordLength && !disabled
@@ -48,7 +51,8 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
           onChange={handleChange}
           disabled={disabled}
           maxLength={CONFIG.wordLength}
-          className="flex-1 rounded-xl border-2 border-indigo-200 bg-white px-4 py-3 text-center text-lg font-bold uppercase tracking-widest text-indigo-900 placeholder-indigo-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:opacity-50"
+          ref={inputRef}
+          className="flex-1 rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-center text-lg font-bold uppercase tracking-widest text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-50"
           aria-label="Enter guess"
           autoComplete="off"
           autoCapitalize="characters"
@@ -58,7 +62,7 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
         <button
           type="submit"
           disabled={!canSubmit}
-          className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:opacity-40"
+          className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-bold text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-offset-2 disabled:opacity-40"
         >
           Go
         </button>
