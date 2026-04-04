@@ -7,7 +7,7 @@
 | Release | v1.0 |
 | Branch | release/v1.0 |
 | Date | 2026-04-04 |
-| Status | In Progress |
+| Status | Done |
 
 ### Summary
 This is an "inception" release: it simultaneously establishes the formal Lengle release workflow (the process all future releases follow) and delivers the first significant batch of UX improvements. The app was bootstrapped without a formal release process; this release formalises that retroactively. App changes include renaming a player, hiding per-letter scores to increase challenge, a full UI redesign with letter tile animations, and per-player emoji customisation throughout the app.
