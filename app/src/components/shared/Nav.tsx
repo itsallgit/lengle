@@ -7,27 +7,28 @@ interface NavLink {
 
 const NAV_LINKS: NavLink[] = [
   { to: '/lobby', label: 'Lobby' },
-  { to: '/leaderboard', label: 'Leaderboard' },
+  { to: '/play', label: 'Play' },
+  { to: '/leaderboard', label: 'Board' },
   { to: '/history', label: 'History' },
 ]
 
 /**
  * Top-level navigation links.
- * Rendered inside Header; the active route is indicated by an underline.
+ * Rendered inside the indigo Header; active route is bold + white underline.
  */
 export default function Nav() {
   const { pathname } = useLocation()
 
   return (
-    <nav aria-label="Main navigation" className="flex gap-5">
+    <nav aria-label="Main navigation" className="flex gap-4">
       {NAV_LINKS.map(({ to, label }) => (
         <Link
           key={to}
           to={to}
           className={
             pathname === to
-              ? 'text-sm font-semibold text-gray-900 underline underline-offset-2'
-              : 'text-sm font-medium text-gray-500 hover:text-gray-800'
+              ? 'text-sm font-bold text-white underline underline-offset-4 decoration-2'
+              : 'text-sm font-medium text-indigo-200 hover:text-white'
           }
         >
           {label}

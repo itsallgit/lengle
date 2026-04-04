@@ -19,9 +19,9 @@ export default function Header() {
   })
 
   return (
-    <header className="border-b border-gray-200 bg-white px-4 py-3">
-      <div className="mx-auto flex max-w-lg items-center justify-between">
-        <span className="text-sm text-gray-500">{formatted}</span>
+    <header className="bg-indigo-600 px-4 py-3 shadow-md">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-indigo-200">{formatted}</span>
         <Nav />
       </div>
     </header>

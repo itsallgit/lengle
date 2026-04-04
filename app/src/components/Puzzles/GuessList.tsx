@@ -7,12 +7,11 @@ interface GuessListProps {
 
 export default function GuessList({ guesses }: GuessListProps) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       {guesses.map((entry) => (
         <GuessRow
           key={`${entry.puzzle_setter_id}-${entry.guess_number}`}
           word={entry.word}
-          perLetterScores={entry.per_letter_scores}
           total={entry.score}
         />
       ))}

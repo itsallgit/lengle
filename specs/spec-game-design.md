@@ -100,10 +100,10 @@ Each guess produces a numeric score calculated independently across all 5 letter
 - If a letter appears once in the target but twice in the guess, one instance scores +0 or +1 and the other scores +3
 - The +0 or +1 instance is awarded to the positionally correct occurrence first; remaining duplicates score +3
 
-### 5.4 Per-Letter Score Display
-- Alongside the total score for each guess, the individual score for each of the 5 letter positions is shown
-- This allows players to see exactly which letters contributed to their score
-- Example display: `CRANE → [0, 3, 1, 3, 0] = 7`
+### 5.4 Score Display
+- Only the total score for each guess is displayed
+- Per-letter individual scores are not shown
+- Example display: `CRANE = 7`
 
 ---
 
@@ -122,7 +122,7 @@ Each guess produces a numeric score calculated independently across all 5 letter
 ### 6.3 Example
 | Player | Guesses (Puzzle 1) | Guesses (Puzzle 2) | Daily Score |
 |---|---|---|---|
-| Alex | 3 | 2 | **5** ✅ Winner |
+| Troy | 3 | 2 | **5** ✅ Winner |
 | Mum | 4 | 3 | 7 |
 | Dad | 2 | 6 | 8 |
 
@@ -142,7 +142,7 @@ Each guess produces a numeric score calculated independently across all 5 letter
 ### 7.3 Display
 - Below each active puzzle panel is a collapsible **"Others"** section
 - The section contains one collapsible sub-panel per other player, labelled with their name and current total guess count on that puzzle
-- Expanding a sub-panel reveals their visible guesses: the guessed word, the per-letter scores, and the total score per guess
+- Expanding a sub-panel reveals their visible guesses: the guessed word and the total score per guess
 - All panels are collapsed by default
 
 ---
@@ -193,7 +193,7 @@ Each guess produces a numeric score calculated independently across all 5 letter
 
 **Each puzzle panel:**
 - Labelled with the setter's name
-- Shows the current player's full guess history: each row displays the guessed word, the per-letter scores, and the total score
+- Shows the current player's full guess history: each row displays the guessed word and the total score
 - A text input + Submit button for entering the next guess (hidden once solved)
 - A `"Solved in N guesses 🎉"` banner replaces the input when the puzzle is solved
 - A collapsible "Others" section below (per Section 7)
@@ -240,7 +240,7 @@ Three tabs: **Today**, **All Time**, **Trends**
   - The date
   - Each puzzle word and who set it
   - The daily winner
-  - Each player's full guess breakdown for each puzzle: every guess made, the per-letter scores, the total score per guess, and how many guesses it took to solve
+  - Each player's full guess breakdown for each puzzle: every guess made, the total score per guess, and how many guesses it took to solve
 - Current day's words and guesses are **not** shown in Word History until the puzzle day has ended (i.e. after 4am the following day)
 - Unsolved puzzles from past days show the word and the player's incomplete guess history with a "Not solved" label
 
@@ -267,13 +267,24 @@ Three tabs: **Today**, **All Time**, **Trends**
 | AC-15 | The app never displays a timer anywhere |
 | AC-16 | The daily reset occurs at 4am local device time |
 | AC-17 | The last selected player name is remembered across visits |
-| AC-18 | Per-letter scores are shown alongside the total score for every guess |
+| AC-18 | Only the total score is shown for each guess — per-letter scores are not displayed |
 | AC-19 | The lobby status updates automatically without a manual page refresh |
 | AC-20 | The first player to open the app after 4am triggers finalisation of the previous day's results if not already written |
 
 ---
 
-## 10. Out of Scope (v1)
+## 11. Player Emoji
+
+- Each player can select a custom emoji to represent them throughout the app
+- A grid of 24 preset emojis is available on the Player Select screen
+- The selected emoji is displayed alongside the player's name in all views (leaderboard, lobby, puzzle panels, word history)
+- Emoji preferences are stored in S3 at `data/players/profiles.json` and are shared across all devices
+- Each player has a `defaultEmoji` defined in config, which is used if no custom emoji has been saved
+- Emoji changes take effect immediately in the UI and are persisted to S3 in the background
+
+---
+
+## 12. Out of Scope (v1)
 
 - Push notifications or email reminders
 - More than 3 players

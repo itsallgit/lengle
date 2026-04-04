@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
 import { getActivePuzzleDate } from '../../lib/date'
 import { listS3Keys, readJson } from '../../lib/s3'
@@ -31,7 +32,7 @@ interface DayRow {
 
 interface WordDifficulty {
   word: string
-  setterName: string
+  setterId: string
   avgGuesses: number
 }
 
@@ -41,9 +42,6 @@ const PLAYER_COLORS: Record<string, string> = {
   player_3: '#f59e0b',
 }
 
-function getPlayerName(id: string): string {
-  return CONFIG.players.find((p) => p.id === id)?.name ?? id
-}
 
 function extractPastDates(keys: string[], activePuzzleDate: string): string[] {
   const dateSet = new Set<string>()
@@ -65,6 +63,13 @@ function applyDateRange<T>(items: T[], range: DateRange): T[] {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+function getPlayerDisplay(id: string, emojis: Record<string, string>): string {
+  const player = CONFIG.players.find((p) => p.id === id)
+  if (!player) return id
+  const emoji = emojis[id] ?? player.defaultEmoji
+  return `${emoji} ${player.name}`
+}
+
 export default function TrendsTab() {
   const [playerFilter, setPlayerFilter] = useState<PlayerFilter>('all')
   const [dateRange, setDateRange] = useState<DateRange>('all')
@@ -72,6 +77,7 @@ export default function TrendsTab() {
   const [dayRows, setDayRows] = useState<DayRow[]>([])
   const [wordDifficulty, setWordDifficulty] = useState<WordDifficulty[]>([])
   const [loading, setLoading] = useState(true)
+  const { playerEmojis } = usePlayer()
 
   useEffect(() => {
     async function load() {
@@ -135,7 +141,7 @@ export default function TrendsTab() {
       // Compute average guesses per word
       const difficultyMap: Record<
         string,
-        { word: string; setterName: string; total: number; count: number }
+        { word: string; setterId: string; total: number; count: number }
       > = {}
 
       for (const { date, setterId, pw } of wordData) {
@@ -162,7 +168,7 @@ export default function TrendsTab() {
 
         difficultyMap[key] = {
           word: pw.word,
-          setterName: getPlayerName(setterId),
+          setterId,
           total: totalGuesses,
           count: solvers,
         }
@@ -172,7 +178,7 @@ export default function TrendsTab() {
         .filter((d) => d.count > 0)
         .map((d) => ({
           word: d.word,
-          setterName: d.setterName,
+          setterId: d.setterId,
           avgGuesses: d.total / d.count,
         }))
         .sort((a, b) => b.avgGuesses - a.avgGuesses)
@@ -246,10 +252,10 @@ export default function TrendsTab() {
   const difficultyData = useMemo(
     () =>
       wordDifficulty.map((d) => ({
-        label: `${d.word} (${d.setterName})`,
+        label: `${d.word} (${getPlayerDisplay(d.setterId, playerEmojis)})`,
         avgGuesses: parseFloat(d.avgGuesses.toFixed(1)),
       })),
-    [wordDifficulty],
+    [wordDifficulty, playerEmojis],
   )
 
   if (loading) {
@@ -284,7 +290,7 @@ export default function TrendsTab() {
             <option value="all">All Players</option>
             {CONFIG.players.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {getPlayerDisplay(p.id, playerEmojis)}
               </option>
             ))}
           </select>
@@ -343,7 +349,7 @@ export default function TrendsTab() {
                   key={p.id}
                   type="monotone"
                   dataKey={p.id}
-                  name={getPlayerName(p.id)}
+                  name={getPlayerDisplay(p.id, playerEmojis)}
                   stroke={PLAYER_COLORS[p.id] ?? '#6b7280'}
                   dot={false}
                   connectNulls
@@ -377,7 +383,7 @@ export default function TrendsTab() {
                   key={p.id}
                   type="monotone"
                   dataKey={p.id}
-                  name={getPlayerName(p.id)}
+                  name={getPlayerDisplay(p.id, playerEmojis)}
                   stroke={PLAYER_COLORS[p.id] ?? '#6b7280'}
                   dot={{ r: 3 }}
                   connectNulls

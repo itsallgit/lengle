@@ -1,6 +1,6 @@
 {
   "players": [
-    { "id": "player_1", "name": "Alex" },
+    { "id": "player_1", "name": "Troy" },
     { "id": "player_2", "name": "Mum" },
     { "id": "player_3", "name": "Dad" }
   ]

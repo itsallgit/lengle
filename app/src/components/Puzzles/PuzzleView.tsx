@@ -31,9 +31,9 @@ export default function PuzzleView() {
   const setters = CONFIG.players.filter((p) => p.id !== playerId)
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="mx-auto max-w-lg space-y-6 px-4 py-6">
+      <div className="w-full space-y-4 px-4 py-6">
         {setters.map((setter) => {
           // The other guesser is the remaining player: neither the setter nor
           // the current player.

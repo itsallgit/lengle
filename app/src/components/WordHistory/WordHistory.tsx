@@ -84,10 +84,10 @@ export default function WordHistory() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="mx-auto max-w-lg px-4 py-6">
-        <h1 className="mb-4 text-xl font-bold text-gray-900">Word History</h1>
+        <h1 className="mb-4 text-2xl font-black text-indigo-700">Word History</h1>
 
         {loading && <p className="text-sm text-gray-500">Loading…</p>}
 
