@@ -13,10 +13,10 @@ export default function Leaderboard() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="w-full px-4 py-6">
-        <h1 className="mb-4 text-2xl font-black text-indigo-700">Leaderboard</h1>
+        <h1 className="mb-4 text-2xl font-black text-gray-900">Leaderboard</h1>
 
         {/* Tab bar */}
-        <div className="mb-6 flex gap-1 rounded-xl bg-indigo-100 p-1">
+        <div className="mb-6 flex gap-1 rounded-xl bg-gray-100 p-1">
           {(
             [
               { id: 'today', label: 'Today' },
@@ -29,8 +29,8 @@ export default function Leaderboard() {
               onClick={() => setActiveTab(id)}
               className={
                 activeTab === id
-                  ? 'flex-1 rounded-lg bg-indigo-600 py-2 text-sm font-bold text-white shadow'
-                  : 'flex-1 rounded-lg py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50'
+                  ? 'flex-1 rounded-lg bg-gray-900 py-2 text-sm font-bold text-white shadow'
+                  : 'flex-1 rounded-lg py-2 text-sm font-medium text-gray-600 hover:bg-gray-50'
               }
             >
               {label}

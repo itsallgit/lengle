@@ -294,7 +294,7 @@ export default function Lobby() {
             </p>
             <button
               onClick={() => navigate('/play')}
-              className="rounded-md bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
+              className="rounded-md bg-gray-900 px-6 py-3 text-sm font-semibold text-white hover:bg-gray-800"
             >
               Play Today&rsquo;s Puzzles
             </button>

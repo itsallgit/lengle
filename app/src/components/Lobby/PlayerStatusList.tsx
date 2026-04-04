@@ -26,7 +26,7 @@ export default function PlayerStatusList({ status }: Props) {
             key={player.id}
             className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium ${
               hasSet
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                ? 'border-green-200 bg-green-50 text-green-800'
                 : 'border-amber-200 bg-amber-50 text-amber-800'
             }`}
           >
