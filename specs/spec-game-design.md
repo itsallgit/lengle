@@ -101,9 +101,11 @@ Each guess produces a numeric score calculated independently across all 5 letter
 - The +0 or +1 instance is awarded to the positionally correct occurrence first; remaining duplicates score +3
 
 ### 5.4 Score Display
-- Only the total score for each guess is displayed
-- Per-letter individual scores are not shown
-- Example display: `CRANE = 7`
+- Each guess row displays two feedback elements:
+  1. **5 sorted mini colour indicators** — sorted green-first, then yellow, then grey — showing how many letters are in the correct position (green), correct letter but wrong position (yellow), or not in the word (grey). The indicators do not reveal which positions correspond to which colour.
+  2. **Total numeric score** displayed in a de-emphasised secondary style (plain text, no coloured background). Hidden when the score is 0 (solved).
+- Correct guesses (score = 0) show all 5 mini squares as green; the score value is not shown.
+- Example display: `CRANE` + 🟩⬜⬜⬜⬜ `(7)`
 
 ---
 
@@ -131,18 +133,14 @@ Each guess produces a numeric score calculated independently across all 5 letter
 ## 7. Social Feed
 
 ### 7.1 Visibility Rule
-- On any given puzzle, a player can see the guesses of other players **up to the number of guesses they themselves have made** on that same puzzle
-- A player can always see the **total guess count** of all other players on any puzzle, regardless of their own progress
-- Example: if Player A has made 3 guesses on Mum's puzzle, they can see the first 3 guesses (word + score) that the other player made on Mum's puzzle — but not their 4th or beyond
+- Other players' actual guess words are **never visible** to any player
+- A player can always see the **total guess count** and **solved status** of all other players on any puzzle
 
-### 7.2 Post-Solve Visibility
-- Once a player has solved a puzzle, their full guess history on that puzzle becomes visible to any other player who has **also solved the same puzzle**
-- Players who have not yet solved the puzzle continue to see only up to their own guess count
-
-### 7.3 Display
+### 7.2 Display
 - Below each active puzzle panel is a collapsible **"Others"** section
-- The section contains one collapsible sub-panel per other player, labelled with their name and current total guess count on that puzzle
-- Expanding a sub-panel reveals their visible guesses: the guessed word and the total score per guess
+- The section contains one row per other player showing: emoji, name, guess count, and a solved indicator (✓) if they have solved the puzzle
+- Example: `🌸 Mum — 3 guesses ✓`
+- No guess words or scores are shown under any circumstances
 - All panels are collapsed by default
 
 ---
@@ -258,16 +256,16 @@ Three tabs: **Today**, **All Time**, **Trends**
 | AC-06 | A player can set tomorrow's word at any time after today's puzzle opens |
 | AC-07 | A submitted word cannot be changed |
 | AC-08 | A score of 0 marks a puzzle as solved and removes the input field |
-| AC-09 | A player sees other players' guesses only up to their own guess count on that puzzle |
-| AC-10 | A player always sees the total guess count of other players regardless of their own progress |
-| AC-11 | Full guess history is mutually visible only to players who have both solved the same puzzle |
+| AC-09 | ~~A player sees other players' guesses only up to their own guess count on that puzzle~~ *(removed — other players' guess words are never visible)* |
+| AC-10 | A player always sees the total guess count and solved status of other players regardless of their own progress |
+| AC-11 | ~~Full guess history is mutually visible only to players who have both solved the same puzzle~~ *(removed — other players' guess words are never shown)* |
 | AC-12 | The daily winner is the player with the lowest total guess count across both puzzles |
 | AC-13 | Joint winners are supported at both puzzle and daily level |
 | AC-14 | Today's puzzle words and guesses do not appear in Word History until the following day after 4am |
 | AC-15 | The app never displays a timer anywhere |
 | AC-16 | The daily reset occurs at 4am local device time |
 | AC-17 | The last selected player name is remembered across visits |
-| AC-18 | Only the total score is shown for each guess — per-letter scores are not displayed |
+| AC-18 | Each guess shows 5 sorted mini colour indicators (green/yellow/grey) plus a de-emphasised total score; correct guesses show all-green indicators with no score value |
 | AC-19 | The lobby status updates automatically without a manual page refresh |
 | AC-20 | The first player to open the app after 4am triggers finalisation of the previous day's results if not already written |
 

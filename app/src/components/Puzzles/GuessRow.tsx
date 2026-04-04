@@ -1,13 +1,27 @@
+import { CONFIG } from '../../lib/config'
+
 interface GuessRowProps {
   word: string
   total: number
+  perLetterScores: number[]
 }
 
-export default function GuessRow({ word, total }: GuessRowProps) {
+export default function GuessRow({ word, total, perLetterScores }: GuessRowProps) {
   const isCorrect = total === 0
   const tileBase =
     'flex h-12 w-12 items-center justify-center rounded-lg text-lg font-bold text-white animate-tile-pop'
-  const tileColor = isCorrect ? 'bg-emerald-500' : 'bg-indigo-600'
+  const tileColor = isCorrect ? 'bg-green-600' : 'bg-gray-700'
+
+  const green = perLetterScores.filter((s) => s === CONFIG.scoring.correctPosition).length
+  const yellow = perLetterScores.filter((s) => s === CONFIG.scoring.correctLetter).length
+  const grey = perLetterScores.filter((s) => s === CONFIG.scoring.notInWord).length
+
+  // Build sorted array of mini square colours: green first, then yellow, then grey
+  const miniSquares: string[] = [
+    ...Array(green).fill('bg-green-500'),
+    ...Array(yellow).fill('bg-orange-400'),
+    ...Array(grey).fill('bg-gray-200'),
+  ]
 
   return (
     <div className="flex items-center gap-2">
@@ -22,15 +36,14 @@ export default function GuessRow({ word, total }: GuessRowProps) {
           </div>
         ))}
       </div>
-      <span
-        className={`min-w-[2.25rem] rounded-full px-2.5 py-0.5 text-center text-sm font-bold ${
-          isCorrect
-            ? 'bg-emerald-100 text-emerald-800'
-            : 'bg-amber-400 text-amber-900'
-        }`}
-      >
-        {total}
-      </span>
+      <div className="flex gap-0.5">
+        {miniSquares.map((colour, i) => (
+          <div key={i} className={`h-3 w-3 rounded-sm ${colour}`} />
+        ))}
+      </div>
+      {!isCorrect && (
+        <span className="text-xs text-gray-400 font-normal">({total})</span>
+      )}
     </div>
   )
 }

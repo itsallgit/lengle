@@ -1,5 +1,5 @@
 import { getActivePuzzleDate } from '../../lib/date'
-import Nav from './Nav'
+import { NavMenu } from './Nav'
 
 /**
  * Persistent page header showing today's active puzzle date and main navigation.
@@ -19,11 +19,13 @@ export default function Header() {
   })
 
   return (
-    <header className="bg-indigo-600 px-4 py-3 shadow-md">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-indigo-200">{formatted}</span>
-        <Nav />
-      </div>
-    </header>
+    <div className="relative">
+      <header className="bg-gray-900 px-4 py-3 shadow-md">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-400">{formatted}</span>
+          <NavMenu />
+        </div>
+      </header>
+    </div>
   )
 }

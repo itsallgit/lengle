@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
 import { readJson, writeToS3 } from '../../lib/s3'
@@ -29,8 +29,8 @@ export default function PuzzlePanel({
   const [targetWord, setTargetWord] = useState<string | null>(null)
   /** Current player's guesses on this puzzle, filtered to setterId. */
   const [myGuesses, setMyGuesses] = useState<GuessEntry[]>([])
-  /** Other guesser's guesses on this puzzle, keyed by their player id. */
-  const [othersGuesses, setOthersGuesses] = useState<Record<string, GuessEntry[]>>({})
+  /** Other guesser's summary info on this puzzle, keyed by their player id. */
+  const [othersInfo, setOthersInfo] = useState<Record<string, { guessCount: number; solved: boolean }>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -40,17 +40,7 @@ export default function PuzzlePanel({
   const setterEmoji = setterPlayer ? (playerEmojis[setterId] ?? setterPlayer.defaultEmoji) : ''
   const setterName = setterPlayer ? `${setterEmoji} ${setterPlayer.name}` : setterId
 
-  // Refetches the other guesser's guesses (filtered to this puzzle).
-  // Called after a correct guess to pick up newly visible rows — AC-11.
-  const fetchOthersGuesses = useCallback(async () => {
-    const file = await readJson<PlayerGuesses>(
-      `data/days/${date}/guesses-${otherGuesserId}.json`,
-    )
-    const filtered = (file?.guesses ?? []).filter((g) => g.puzzle_setter_id === setterId)
-    setOthersGuesses({ [otherGuesserId]: filtered })
-  }, [date, otherGuesserId, setterId])
-
-  // Load targetWord, current player's guesses, and other guesser's guesses in parallel.
+  // Load targetWord, current player’s guesses, and other guesser’s guesses in parallel.
   useEffect(() => {
     let cancelled = false
 
@@ -73,10 +63,14 @@ export default function PuzzlePanel({
       setMyGuesses(
         (myGuessFile?.guesses ?? []).filter((g) => g.puzzle_setter_id === setterId),
       )
-      setOthersGuesses({
-        [otherGuesserId]: (otherGuessFile?.guesses ?? []).filter(
-          (g) => g.puzzle_setter_id === setterId,
-        ),
+      const filtered = (otherGuessFile?.guesses ?? []).filter(
+        (g) => g.puzzle_setter_id === setterId,
+      )
+      setOthersInfo({
+        [otherGuesserId]: {
+          guessCount: filtered.length,
+          solved: filtered.some((g) => g.is_correct),
+        },
       })
 
       setIsLoading(false)
@@ -127,12 +121,6 @@ export default function PuzzlePanel({
       setMyGuesses((prev) => [...prev, newEntry])
 
       await writeToS3(guessFileKey, updatedFile)
-
-      // AC-11: once solved, re-fetch the other player's guesses so their full
-      // history becomes mutually visible if they've also solved this puzzle.
-      if (result.isCorrect) {
-        await fetchOthersGuesses()
-      }
     } finally {
       setIsSubmitting(false)
     }
@@ -140,19 +128,19 @@ export default function PuzzlePanel({
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm">
-        <h2 className="mb-2 text-lg font-bold text-indigo-700">Loading…</h2>
+      <div className="py-2">
+        <h2 className="mb-2 text-lg font-bold text-gray-900">Loading…</h2>
         <p className="text-sm text-gray-400">Fetching puzzle…</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-lg font-bold text-indigo-700">
+    <div className="py-2">
+      <h2 className="mb-4 text-lg font-bold text-gray-900">
         {setterName}&apos;s word
         {isSolved && targetWord && (
-          <span className="ml-3 font-mono tracking-widest text-emerald-600">
+          <span className="ml-3 font-mono tracking-widest text-green-600">
             {targetWord}
           </span>
         )}
@@ -162,7 +150,7 @@ export default function PuzzlePanel({
 
       <div className="mt-4">
         {isSolved ? (
-          <p className="font-semibold text-emerald-600">
+          <p className="font-semibold text-green-600">
             Solved in {myGuesses.length} {myGuesses.length === 1 ? 'guess' : 'guesses'} 🎉
           </p>
         ) : (
@@ -175,10 +163,7 @@ export default function PuzzlePanel({
       </div>
 
       <OthersPanel
-        setterId={setterId}
-        myGuessCount={myGuesses.length}
-        isSolved={isSolved}
-        othersGuesses={othersGuesses}
+        others={Object.entries(othersInfo).map(([id, info]) => ({ playerId: id, ...info }))}
       />
     </div>
   )

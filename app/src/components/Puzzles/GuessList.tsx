@@ -13,6 +13,7 @@ export default function GuessList({ guesses }: GuessListProps) {
           key={`${entry.puzzle_setter_id}-${entry.guess_number}`}
           word={entry.word}
           total={entry.score}
+          perLetterScores={entry.per_letter_scores}
         />
       ))}
     </div>

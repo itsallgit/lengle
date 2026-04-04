@@ -13,7 +13,7 @@ All changes ship through a named `release/vX.Y` branch (major + minor only, no p
 
 **Typical flow:**
 1. Invoke `@release-agent` and say "start v1.1" — it creates the branch, interviews you, and writes `plans/release-v1.1.md`
-2. Review and confirm the plan, then switch to **Agent mode** to implement the code changes
+2. Review and confirm the plan, then use **`@build-agent`** to implement the code changes — it reviews the plan against the real codebase, asks clarifying questions with recommendations, then implements all phases continuously and self-heals typecheck/lint errors
 3. Come back to `@release-agent` to run checks (`npm run typecheck && npm run lint`), deploy, or close the release
 4. When done, tell the release agent to close the release — it commits, pushes, and squash-merges to `main`
 
