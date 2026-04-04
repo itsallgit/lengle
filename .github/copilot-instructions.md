@@ -9,12 +9,24 @@ Full game rules: `specs/spec-game-design.md`
 Technical architecture and conventions: `specs/spec-implementation.md`
 
 ## Release workflow
-All changes ship through a named release branch. The 5-step process:
-1. Invoke `@release-agent` in Copilot Chat — it creates the git branch and writes the plan file
-2. Plan document is created at `plans/release-vX.X.md` using the standard template
-3. Review and confirm the plan, then switch to Agent mode to implement it
-4. Run `cd app && npm run typecheck && npm run lint` — must pass before pushing
-5. Push release branch and merge to main
+All changes ship through a named `release/vX.Y` branch (major + minor only, no patch versions). The release agent manages git, deployment, and merging. You handle code changes in Agent mode.
+
+**Typical flow:**
+1. Invoke `@release-agent` and say "start v1.1" — it creates the branch, interviews you, and writes `plans/release-v1.1.md`
+2. Review and confirm the plan, then switch to **Agent mode** to implement the code changes
+3. Come back to `@release-agent` to run checks (`npm run typecheck && npm run lint`), deploy, or close the release
+4. When done, tell the release agent to close the release — it commits, pushes, and squash-merges to `main`
+
+**Standard commit message format:**
+```
+vX.Y: One liner summary of the release
+
+- Change description 1
+- Change description 2
+- Change description 3
+```
+
+Plan documents live at `plans/release-vX.Y.md`. One per release.
 
 ## Architecture rules — never violate these
 - All S3 reads go through `app/src/lib/s3.ts → readJson()` (HTTP GET to S3 website URL)

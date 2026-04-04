@@ -666,7 +666,37 @@ The `players.json` content is derived from `CONFIG.players` in `config.ts`.
 
 ## 8. GitHub Copilot Integration
 
-### 8.1 Repository-Level Instructions (`.github/copilot-instructions.md`)
+### 8.1 Release Workflow
+
+All changes ship through a named `release/vX.Y` branch (major + minor only, no patch versions). The `@release-agent` custom agent manages the full lifecycle:
+
+| Phase | Who | What |
+|---|---|---|
+| Plan | Release Agent | Creates branch, interviews user, researches codebase, writes `plans/release-vX.Y.md` |
+| Implement | User in Agent mode | Makes all code changes following the plan |
+| Verify + Deploy | Release Agent (on demand) | Runs `typecheck` + `lint`, runs `scripts/deploy.sh` |
+| Close | Release Agent | Commits, pushes release branch, squash-merges to `main` |
+
+**Standard commit message format:**
+```
+vX.Y: One liner summary of the release
+
+- Change description 1
+- Change description 2
+- Change description 3
+```
+
+Plan documents live at `plans/release-vX.Y.md`. One per release.
+
+### 8.2 Release Agent (`.github/agents/release-agent.agent.md`)
+
+The release agent has three routines:
+
+- **Start Release** — validates version (`vX.Y`), checks for unmerged previous releases (warns + offers to close first), creates the `release/vX.Y` branch, interviews user about changes, uses the `Explore` subagent to research codebase impact, writes the plan document.
+- **Active Release Coordinator** — runs `typecheck` + `lint` on demand, runs `scripts/deploy.sh` with pre-deploy checks, answers spec/architecture questions, summarises open plan items.
+- **Close Release** — confirms with user, runs final checks (aborts if they fail), builds the commit message (one-liner + bullet list confirmed with user), commits on the release branch, pushes, squash-merges to `main`, updates plan status to Done.
+
+### 8.3 Repository-Level Instructions (`.github/copilot-instructions.md`)
 
 ```markdown
 # Lengle — Copilot Repository Instructions
@@ -702,7 +732,7 @@ When making ANY change to game behaviour or implementation, update the relevant 
 of specs/spec-game-design.md and/or specs/spec-implementation.md in the same commit as the code change.
 ```
 
-### 8.2 Game Change Prompt (`.github/prompts/update-game.prompt.md`)
+### 8.4 Game Change Prompt (`.github/prompts/update-game.prompt.md`)
 
 ````markdown
 # Copilot Prompt: Update Game
@@ -723,7 +753,7 @@ Use this prompt when making any change to Lengle's game behaviour, UI, or config
 [DESCRIBE YOUR CHANGE HERE]
 ````
 
-### 8.3 Deploy Prompt (`.github/prompts/deploy.prompt.md`)
+### 8.5 Deploy Prompt (`.github/prompts/deploy.prompt.md`)
 
 ````markdown
 # Copilot Prompt: Deploy to Production

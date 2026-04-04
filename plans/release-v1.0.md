@@ -29,6 +29,10 @@ This is an "inception" release: it simultaneously establishes the formal Lengle 
 2. **Create** `plans/release-v1.0.md` — this document (written manually for the inception release)
 3. **Update** `.github/copilot-instructions.md` — add `## Release workflow` section: 5-step process, how to invoke the Release Agent, location of plan files
 4. **Update** `README.md` — add "Release Workflow" section near the top explaining the 5-step process, Release Agent invocation, and CI/CD prompt usage
+5. **Rewrite** `.github/agents/release-agent.agent.md` — expand from planning-only to full lifecycle coordinator: Start Release (branch + interview + plan), Active Release (checks + deploy + spec Q&A), Close Release (typecheck + lint gate, squash merge to `main` with standard commit format); update `description` and `argument-hint` frontmatter
+6. **Update** `.github/copilot-instructions.md` — replace 5-step handoff with lifecycle model, document standard commit message format (`vX.Y: summary\n\n- bullet list`)
+7. **Update** `specs/spec-implementation.md` §8 — add §8.1 Release Workflow table and §8.2 Release Agent summary; renumber §8.1–8.3 to §8.3–8.5
+8. **Replace** `README.md` — new project overview README covering structure, architecture, how to work, key files, dev setup, deploy, and game data recovery; move old MVP build guide to `plans/plan-MVP.md`
 
 ### Phase 1 — CI/CD Scripts & Prompts *(parallel with Phase 0)*
 
