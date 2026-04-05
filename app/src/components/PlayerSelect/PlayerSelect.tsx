@@ -53,10 +53,17 @@ export default function PlayerSelect() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 px-4">
       <div className="w-full max-w-sm space-y-6 rounded-2xl bg-white p-8 shadow-xl">
         <div className="text-center">
-          <h1 className="text-4xl font-black tracking-tight text-gray-900">
-            Lengle
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">Daily word puzzle</p>
+          <div className="flex justify-center gap-1.5">
+            {'LENGLE'.split('').map((letter, i) => (
+              <div
+                key={i}
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-600 text-lg font-bold text-white"
+              >
+                {letter}
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-sm text-gray-500">Daily word puzzle</p>
         </div>
 
         <div className="space-y-1">
@@ -70,7 +77,7 @@ export default function PlayerSelect() {
             id="player-select"
             value={selected}
             onChange={e => handleSelectPlayer(e.target.value)}
-            className="w-full rounded-xl border-2 border-gray-200 px-3 py-3 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-200"
+            className="w-full appearance-none rounded-xl border-2 border-gray-200 px-3 py-3 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-200"
           >
             {CONFIG.players.map(p => (
               <option key={p.id} value={p.id}>
@@ -116,9 +123,9 @@ export default function PlayerSelect() {
 
         <button
           onClick={handlePlay}
-          className="w-full rounded-xl bg-gray-900 px-4 py-3 text-base font-bold text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-offset-2"
+          className="w-full rounded-xl bg-violet-700 px-4 py-3 text-base font-bold text-white hover:bg-violet-800 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:ring-offset-2"
         >
-          Play →
+          Play
         </button>
       </div>
     </main>

@@ -147,7 +147,11 @@ Then confirm or generate the bullet list of changes from the plan document. The 
 
 Show the full message to the user and ask them to confirm before committing.
 
-### C4 — Commit on the release branch
+### C4 — Update plan status to Done
+
+Before committing, update `plans/release-{version}.md`: change `Status | In Progress` to `Status | Done`. This ensures the status change is included in the release commit rather than left as an uncommitted file.
+
+### C5 — Commit on the release branch
 
 ```
 git add -A
@@ -158,13 +162,13 @@ git commit -m "{version}: {summary}
 ..."
 ```
 
-### C5 — Push the release branch
+### C6 — Push the release branch
 
 ```
 git push -u origin release/{version}
 ```
 
-### C6 — Squash merge into main
+### C7 — Squash merge into main
 
 ```
 git checkout main
@@ -178,15 +182,13 @@ git commit -m "{version}: {summary}
 git push origin main
 ```
 
-### C7 — Return to release branch and update plan status
+### C8 — Return to release branch
 
 ```
 git checkout release/{version}
 ```
 
-Update `plans/release-{version}.md`: change `Status | In Progress` to `Status | Done`.
-
-### C8 — Report
+### C9 — Report
 
 Tell the user:
 - Release {version} is closed and merged to `main`
