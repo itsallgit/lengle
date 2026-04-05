@@ -12,6 +12,7 @@ export const CONFIG = {
   resetHour: 4,          // new puzzle day starts at 4am local time
   wordLength: 5,
   lobbyPollIntervalMs: 30_000, // 30 seconds
+  profilePollIntervalMs: 60_000, // 60 seconds — profile/emoji changes propagate within ~1 minute
   aws: {
     region: 'ap-southeast-2',
     bucketName: import.meta.env.VITE_S3_BUCKET_NAME as string,

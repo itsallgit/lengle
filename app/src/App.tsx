@@ -1,13 +1,14 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { CONFIG } from './lib/config'
-import { readJson, writeToS3 } from './lib/s3'
+import { writeToS3 } from './lib/s3'
 import PlayerSelect from './components/PlayerSelect/PlayerSelect'
 import Lobby from './components/Lobby/Lobby'
 import PuzzleView from './components/Puzzles/PuzzleView'
 import Leaderboard from './components/Leaderboard/Leaderboard'
 import WordHistory from './components/WordHistory/WordHistory'
 import { useResultsFinalisation } from './hooks/useResultsFinalisation'
+import { useS3Poll } from './hooks/useS3Poll'
 
 // ── Player context ────────────────────────────────────────────────────────────
 
@@ -91,13 +92,16 @@ export default function App() {
     () => Object.fromEntries(CONFIG.players.map((p) => [p.id, p.defaultEmoji])),
   )
 
+  const profilesFromS3 = useS3Poll<Record<string, string>>({
+    key: 'data/players/profiles.json',
+    intervalMs: CONFIG.profilePollIntervalMs,
+  })
+
   useEffect(() => {
-    readJson<Record<string, string>>('data/players/profiles.json')
-      .then((profiles) => {
-        if (profiles) setPlayerEmojis((prev) => ({ ...prev, ...profiles }))
-      })
-      .catch(() => undefined)
-  }, [])
+    if (profilesFromS3) {
+      setPlayerEmojis((prev) => ({ ...prev, ...profilesFromS3 }))
+    }
+  }, [profilesFromS3])
 
   async function setPlayerEmoji(pid: string, emoji: string): Promise<void> {
     const updated = { ...playerEmojis, [pid]: emoji }

@@ -166,7 +166,7 @@ export default function PuzzlePanel({
           expanded ? 'max-h-[2000px]' : 'max-h-0'
         }`}
       >
-        <div className="px-4 pt-4 pb-4">
+        <div className="px-5 pt-4 pb-4">
           {isSolved && targetWord && (
             <p className="mb-3 font-mono tracking-widest text-green-600 text-lg">{targetWord}</p>
           )}
