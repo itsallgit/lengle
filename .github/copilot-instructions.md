@@ -49,6 +49,7 @@ Plan documents live at `plans/release-vX.Y.md`. One per release.
 - `app/src/lib/scoring.ts` — guess scoring
 - `app/src/lib/date.ts` — date and reset logic
 - `app/src/types/index.ts` — all TypeScript interfaces
+- `backups/` — timestamped game data saves committed to git, managed by the release agent (Routine D)
 
 ## Spec update rule
 When making ANY change to game behaviour or implementation, update the relevant section
