@@ -38,7 +38,7 @@ function getS3Client(): S3Client {
 export async function readJson<T>(key: string): Promise<T | null> {
   const url = `${CONFIG.aws.s3WebsiteUrl}/${key}`
   try {
-    const response = await fetch(url)
+    const response = await fetch(url, { cache: 'no-store' })
     if (!response.ok) return null
     const contentType = response.headers.get('content-type') ?? ''
     if (!contentType.includes('application/json')) return null

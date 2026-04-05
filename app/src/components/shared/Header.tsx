@@ -25,7 +25,6 @@ export default function Header() {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: 'numeric',
   })
 
   return (
@@ -34,7 +33,7 @@ export default function Header() {
         <div className="relative flex items-center justify-between">
           <span className="text-sm font-medium text-gray-400">{formatted}</span>
           {pageLabel && (
-            <span className="absolute left-1/2 -translate-x-1/2 text-sm font-semibold text-white">
+            <span className="absolute left-1/2 -translate-x-1/2 text-base font-bold text-white">
               {pageLabel}
             </span>
           )}

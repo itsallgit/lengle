@@ -80,6 +80,22 @@ function PuzzleGuessBlock({
   )
 }
 
+/** Displays the puzzle answer word as a row of green tiles. */
+function WordTilesDisplay({ word }: { word: string }) {
+  return (
+    <div className="my-2 flex gap-1">
+      {word.split('').map((letter, i) => (
+        <div
+          key={i}
+          className="flex h-8 w-8 items-center justify-center rounded-md bg-green-600 text-sm font-bold text-white"
+        >
+          {letter}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function DayEntry({ day }: Props) {
   const [expanded, setExpanded] = useState(false)
   const { playerEmojis } = usePlayer()
@@ -128,15 +144,13 @@ export default function DayEntry({ day }: Props) {
               <div key={setter.id} className="mb-5 last:mb-0">
                 {/* Puzzle word */}
                 <p className="text-sm font-semibold text-gray-900">
-                  {getPlayerDisplay(setter.id)}&apos;s word:{' '}
-                  {wordFile ? (
-                    <span className="font-mono tracking-widest">
-                      {wordFile.word}
-                    </span>
-                  ) : (
-                    <span className="italic text-gray-400">unknown</span>
-                  )}
+                  {getPlayerDisplay(setter.id)}&apos;s word
                 </p>
+                {wordFile ? (
+                  <WordTilesDisplay word={wordFile.word} />
+                ) : (
+                  <p className="mt-1 text-xs italic text-gray-400">unknown</p>
+                )}
 
                 {/* Per-guesser breakdown */}
                 {guessers.map((guesser) => {
