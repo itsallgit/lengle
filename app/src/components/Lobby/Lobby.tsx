@@ -234,14 +234,14 @@ export default function Lobby() {
 
       <main className="mx-auto max-w-lg space-y-6 px-4 py-8">
         {/* ── Page title ── */}
-        <h1 className="text-xl font-bold text-gray-900">
-          Today&rsquo;s Lobby
-          {loading && (
-            <span className="ml-2 text-sm font-normal text-gray-400">
-              Loading…
-            </span>
-          )}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Hi, {currentPlayerName}!
+          </h1>
+          <p className="mt-0.5 text-sm text-gray-500">
+            {loading ? 'Loading…' : "Today's puzzle lobby"}
+          </p>
+        </div>
 
         {/* ── State A: player has not set today's word ── */}
         {!loading && lobbyState === 'A' && (

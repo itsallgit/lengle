@@ -7,7 +7,7 @@
 | Release | v1.3 |
 | Branch | release/v1.3 |
 | Date | 2026-04-05 |
-| Status | In Progress |
+| Status | Done |
 
 ### Summary
 This release addresses usability and visual polish issues found during live testing of v1.2. The most critical fix is a guess persistence bug caused by browser fetch caching silently overwriting S3 guess files. The visual changes complete the accordion puzzle panel redesign (styled dark header cards vs light body), update Word History to show the answer word as green tiles, and clean up the navbar date and page label.
