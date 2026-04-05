@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CONFIG } from '../../lib/config'
 import WORD_LIST from '../../words/wordlist'
 
@@ -12,6 +12,13 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
   const [value, setValue] = useState('')
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const prevDisabled = useRef(disabled)
+  useEffect(() => {
+    if (prevDisabled.current && !disabled) {
+      inputRef.current?.focus()
+    }
+    prevDisabled.current = disabled
+  }, [disabled])
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const upper = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase()
@@ -36,8 +43,6 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
     onSubmit(word)
     setValue('')
     setError(null)
-    // Restore focus so mobile keyboard stays active for the next guess
-    requestAnimationFrame(() => { inputRef.current?.focus() })
   }
 
   const canSubmit = value.length === CONFIG.wordLength && !disabled

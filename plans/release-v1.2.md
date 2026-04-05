@@ -7,7 +7,7 @@
 | Release | v1.2 |
 | Branch | release/v1.2 |
 | Date | 2026-04-05 |
-| Status | In Progress |
+| Status | Done |
 
 ### Summary
 This release focuses on polish across the core play experience. The two biggest changes are restructuring the puzzle screen into proper accordion panels (expanding/collapsing per setter) and fixing the guess input to auto-refocus after submission. The remaining changes address visual inconsistencies: a spurious bottom border in the nav dropdown, an undiscoverable "Others" toggle, stacked colour-per-row squares replacing the flat strip, sticky header, score brackets removal, and leftover indigo text across Word History and other screens.
