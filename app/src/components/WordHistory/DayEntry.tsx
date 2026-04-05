@@ -1,102 +1,64 @@
 import { useState } from 'react'
 import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
-import type { GuessEntry } from '../../types'
-import type { DayHistoryData } from './WordHistory'
+import type { DayData } from './WordHistory'
 
-interface Props {
-  day: DayHistoryData
+interface WordHistoryDayProps {
+  date: string
+  dayData: DayData | null
 }
 
 function formatDate(dateStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number)
-  const date = new Date(year, month - 1, day, 12)
-  return date.toLocaleDateString('en-AU', {
-    weekday: 'short',
+  const d = new Date(year, month - 1, day, 12)
+  return d.toLocaleDateString('en-AU', {
+    weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   })
 }
 
-/** Displays a single guess row: word and total score. */
-function GuessHistoryRow({ guess }: { guess: GuessEntry }) {
-  return (
-    <div className="flex items-baseline gap-2 font-mono text-xs">
-      <span className="w-12 font-semibold tracking-widest text-gray-900">
-        {guess.word}
-      </span>
-      <span className="font-semibold text-gray-700">= {guess.score}</span>
-      {guess.is_correct && (
-        <span className="font-sans text-xs text-gray-500">✓</span>
-      )}
-    </div>
-  )
-}
-
-/** One puzzle's worth of guesses for a given guesser. */
-function PuzzleGuessBlock({
-  guesserName,
-  setterId,
-  guessEntries,
-}: {
-  guesserName: string
-  setterId: string
-  guessEntries: GuessEntry[]
-}) {
-  const forPuzzle = guessEntries.filter(
-    (g) => g.puzzle_setter_id === setterId,
-  )
-  const solved = forPuzzle.some((g) => g.is_correct)
-
-  if (forPuzzle.length === 0) {
+/** Renders the puzzle word as tiles — green letters if finished, grey ? tiles if not. */
+function WordTiles({ word, finished }: { word: string | null; finished: boolean }) {
+  if (finished && word) {
     return (
-      <div className="mt-2">
-        <p className="text-xs font-medium text-gray-600">{guesserName}</p>
-        <p className="text-xs italic text-gray-400">No guesses recorded</p>
+      <div className="flex gap-1.5">
+        {word.split('').map((letter, i) => (
+          <div
+            key={i}
+            className="flex h-11 w-11 items-center justify-center rounded-md bg-green-500 text-base font-bold text-white"
+          >
+            {letter}
+          </div>
+        ))}
       </div>
     )
   }
-
   return (
-    <div className="mt-2">
-      <p className="text-xs font-medium text-gray-600">
-        {guesserName} —{' '}
-        {solved ? (
-          <span className="text-gray-700">
-            Solved in {forPuzzle.length}{' '}
-            {forPuzzle.length === 1 ? 'guess' : 'guesses'}
-          </span>
-        ) : (
-          <span className="italic text-gray-400">Not solved</span>
-        )}
-      </p>
-      <div className="mt-1 space-y-0.5">
-        {forPuzzle.map((g, i) => (
-          <GuessHistoryRow key={i} guess={g} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/** Displays the puzzle answer word as a row of green tiles. */
-function WordTilesDisplay({ word }: { word: string }) {
-  return (
-    <div className="my-2 flex gap-1">
-      {word.split('').map((letter, i) => (
+    <div className="flex gap-1.5">
+      {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
-          className="flex h-8 w-8 items-center justify-center rounded-md bg-green-600 text-sm font-bold text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-md bg-gray-500 text-base font-bold text-white"
         >
-          {letter}
+          ?
         </div>
       ))}
     </div>
   )
 }
 
-export default function DayEntry({ day }: Props) {
+/** Single small grey ? tile for an incomplete/unknown result. */
+function GreyQuestionTile() {
+  return (
+    <span className="inline-flex h-6 w-6 items-center justify-center rounded bg-gray-500 text-xs font-bold text-white">
+      ?
+    </span>
+  )
+}
+
+export default function WordHistoryDay({ date, dayData }: WordHistoryDayProps) {
   const [expanded, setExpanded] = useState(false)
   const { playerEmojis } = usePlayer()
 
@@ -107,75 +69,84 @@ export default function DayEntry({ day }: Props) {
     return `${emoji} ${player.name}`
   }
 
-  const dailyWinners =
-    day.results?.player_results
-      .filter((r) => r.is_daily_winner)
-      .map((r) => getPlayerDisplay(r.player_id)) ?? []
-
   return (
-    <div className="rounded-md border border-gray-200">
-      {/* Header row — always visible */}
+    <div className="rounded-md border border-gray-200 bg-white">
+      {/* Accordion header */}
       <button
         onClick={() => setExpanded((v) => !v)}
         className="flex w-full items-center justify-between px-4 py-3 text-left"
         aria-expanded={expanded}
       >
-        <div>
-          <span className="text-sm font-semibold text-gray-900">
-            {formatDate(day.date)}
-          </span>
-          {dailyWinners.length > 0 && (
-            <span className="ml-3 text-xs text-gray-500">
-              Winner: {dailyWinners.join(' & ')}
-            </span>
+        <span className="text-sm font-semibold text-gray-900">{formatDate(date)}</span>
+        <span className="flex items-center gap-2">
+          {dayData === null ? (
+            <span className="text-xs text-gray-400">Loading…</span>
+          ) : dayData.allCompleted ? (
+            <span className="text-xs font-medium text-green-600">✓ All completed</span>
+          ) : (
+            <span className="text-xs text-gray-400">Not all completed</span>
           )}
-        </div>
-        <span className="text-xs text-gray-400">{expanded ? '▲' : '▼'}</span>
+          <span className="text-xs text-gray-400">{expanded ? '▲' : '▼'}</span>
+        </span>
       </button>
 
       {/* Expanded content */}
-      {expanded && (
-        <div className="border-t border-gray-100 px-4 pb-4 pt-3">
-          {CONFIG.players.map((setter) => {
-            const wordFile = day.words[setter.id]
-            const guessers = CONFIG.players.filter((p) => p.id !== setter.id)
-
+      {expanded && dayData && (
+        <div className="border-t border-gray-100 px-4 pb-4 pt-3 space-y-0">
+          {CONFIG.players.map((player, idx) => {
+            const puzzle = dayData.puzzles.find((p) => p.setterId === player.id)
             return (
-              <div key={setter.id} className="mb-5 last:mb-0">
-                {/* Puzzle word */}
-                <p className="text-sm font-semibold text-gray-900">
-                  {getPlayerDisplay(setter.id)}&apos;s word
-                </p>
-                {wordFile ? (
-                  <WordTilesDisplay word={wordFile.word} />
-                ) : (
-                  <p className="mt-1 text-xs italic text-gray-400">unknown</p>
-                )}
+              <div
+                key={player.id}
+                className={`py-3 ${idx > 0 ? 'border-t border-gray-100' : ''}`}
+              >
+                {/*
+                  Single table: setter + tiles on row 1, each guesser + count on subsequent rows.
+                  Column 1 (fixed w-28) holds player names; column 2 holds tiles / counts.
+                  This keeps tiles and counts left-aligned at the same x-position.
+                */}
+                <table className="w-full text-sm">
+                  <tbody>
+                    {/* Row 1: setter name + word tiles */}
+                    <tr>
+                      <td className="w-28 py-2 align-middle text-sm font-semibold text-gray-700">
+                        {getPlayerDisplay(player.id)}
+                      </td>
+                      <td className="py-2 align-middle">
+                        <WordTiles
+                          word={puzzle?.word ?? null}
+                          finished={puzzle?.allFinished ?? false}
+                        />
+                      </td>
+                    </tr>
 
-                {/* Per-guesser breakdown */}
-                {guessers.map((guesser) => {
-                  const pg = day.guesses[guesser.id]
-                  if (!pg) {
-                    return (
-                      <div key={guesser.id} className="mt-2">
-                        <p className="text-xs font-medium text-gray-600">
-                          {guesser.name}
-                        </p>
-                        <p className="text-xs italic text-gray-400">
-                          No guesses recorded
-                        </p>
-                      </div>
-                    )
-                  }
-                  return (
-                    <PuzzleGuessBlock
-                      key={guesser.id}
-                      guesserName={getPlayerDisplay(guesser.id)}
-                      setterId={setter.id}
-                      guessEntries={pg.guesses}
-                    />
-                  )
-                })}
+                    {/* Rows 2+: each guesser + their guess count */}
+                    {CONFIG.players
+                      .filter((p) => p.id !== player.id)
+                      .map((guesser) => {
+                        const result = puzzle?.guesserResults.find(
+                          (r) => r.playerId === guesser.id,
+                        )
+                        return (
+                          <tr key={guesser.id} className="border-t border-gray-50">
+                            <td className="w-28 py-1.5 font-medium text-gray-700">
+                              {getPlayerDisplay(guesser.id)}
+                            </td>
+                            <td className="py-1.5 text-gray-600">
+                              {result?.guessCount != null ? (
+                                <span>
+                                  <span className="text-base font-bold text-gray-900">{result.guessCount}</span>{' '}
+                                  {result.guessCount === 1 ? 'guess' : 'guesses'}
+                                </span>
+                              ) : (
+                                <GreyQuestionTile />
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                  </tbody>
+                </table>
               </div>
             )
           })}
@@ -184,3 +155,4 @@ export default function DayEntry({ day }: Props) {
     </div>
   )
 }
+

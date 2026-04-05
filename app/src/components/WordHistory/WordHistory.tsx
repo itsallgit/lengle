@@ -2,108 +2,134 @@ import { useEffect, useState } from 'react'
 import { CONFIG } from '../../lib/config'
 import { getActivePuzzleDate } from '../../lib/date'
 import { listS3Keys, readJson } from '../../lib/s3'
-import type { DayResults, PlayerGuesses, PuzzleWord } from '../../types'
+import type { PlayerGuesses, PuzzleWord } from '../../types'
 import Header from '../shared/Header'
-import DayEntry from './DayEntry'
+import WordHistoryDay from './DayEntry'
 
-export interface DayHistoryData {
-  date: string
-  words: Record<string, PuzzleWord | null>        // setter_id → word
-  guesses: Record<string, PlayerGuesses | null>   // guesser_id → guesses
-  results: DayResults | null
+export interface PuzzleData {
+  setterId: string
+  word: string | null
+  allFinished: boolean
+  guesserResults: { playerId: string; guessCount: number | null }[]
+}
+
+export interface DayData {
+  allCompleted: boolean
+  puzzles: PuzzleData[]
 }
 
 export default function WordHistory() {
-  const [history, setHistory] = useState<DayHistoryData[]>([])
+  const [pastDates, setPastDates] = useState<string[]>([])
+  const [loadedData, setLoadedData] = useState<Record<string, DayData | null>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
       const activePuzzleDate = getActivePuzzleDate()
 
-      // List all day keys to find known past dates (AC-14: exclude current day)
       const dayKeys = await listS3Keys('data/days/')
       const dateSet = new Set<string>()
       for (const key of dayKeys) {
         const match = key.match(/data\/days\/(\d{4}-\d{2}-\d{2})\//)
-        if (match) {
-          const d = match[1]
-          // AC-14: only show dates strictly before the active puzzle date
-          if (d < activePuzzleDate) dateSet.add(d)
+        if (match && match[1] < activePuzzleDate) {
+          dateSet.add(match[1])
         }
       }
 
-      const pastDates = Array.from(dateSet).sort().reverse() // newest first
+      const dates = Array.from(dateSet).sort().reverse()
+      setPastDates(dates)
 
-      if (pastDates.length === 0) {
+      if (dates.length === 0) {
         setLoading(false)
         return
       }
 
-      // Fetch words, guesses, and results for all past dates in parallel
-      const dayData = await Promise.all(
-        pastDates.map(async (date) => {
-          // All three word files + all three guess files + results file
-          const [wordsArr, guessesArr, results] = await Promise.all([
+      const allDayData = await Promise.all(
+        dates.map(async (date) => {
+          const [wordsArr, guessesArr] = await Promise.all([
             Promise.all(
-              CONFIG.players.map((setter) =>
-                readJson<PuzzleWord>(
-                  `data/words/${date}/${setter.id}.json`,
-                ).then((pw) => [setter.id, pw] as const),
+              CONFIG.players.map((p) =>
+                readJson<PuzzleWord>(`data/words/${date}/${p.id}.json`).then(
+                  (pw) => [p.id, pw] as const,
+                ),
               ),
             ),
             Promise.all(
-              CONFIG.players.map((guesser) =>
-                readJson<PlayerGuesses>(
-                  `data/days/${date}/guesses-${guesser.id}.json`,
-                ).then((pg) => [guesser.id, pg] as const),
+              CONFIG.players.map((p) =>
+                readJson<PlayerGuesses>(`data/days/${date}/guesses-${p.id}.json`).then(
+                  (pg) => [p.id, pg] as const,
+                ),
               ),
             ),
-            readJson<DayResults>(`data/days/${date}/results.json`),
           ])
 
-          return {
-            date,
-            words: Object.fromEntries(wordsArr) as Record<
-              string,
-              PuzzleWord | null
-            >,
-            guesses: Object.fromEntries(guessesArr) as Record<
-              string,
-              PlayerGuesses | null
-            >,
-            results,
-          } satisfies DayHistoryData
+          const words = Object.fromEntries(wordsArr) as Record<string, PuzzleWord | null>
+          const guesses = Object.fromEntries(guessesArr) as Record<string, PlayerGuesses | null>
+
+          // Build puzzle data per setter
+          const puzzles: PuzzleData[] = CONFIG.players.map((setter) => {
+            const nonSetters = CONFIG.players.filter((p) => p.id !== setter.id)
+
+            const guesserResults = nonSetters.map((guesser) => {
+              const pg = guesses[guesser.id]
+              if (!pg) return { playerId: guesser.id, guessCount: null }
+              const forPuzzle = pg.guesses.filter((g) => g.puzzle_setter_id === setter.id)
+              const solved = forPuzzle.some((g) => g.is_correct)
+              return {
+                playerId: guesser.id,
+                guessCount: solved ? forPuzzle.length : null,
+              }
+            })
+
+            const allFinished = guesserResults.every((r) => r.guessCount !== null)
+
+            return {
+              setterId: setter.id,
+              word: allFinished ? (words[setter.id]?.word ?? null) : null,
+              allFinished,
+              guesserResults,
+            }
+          })
+
+          // Day is all completed if every puzzle is allFinished
+          const allCompleted = puzzles.every((p) => p.allFinished)
+
+          return { date, dayData: { allCompleted, puzzles } }
         }),
       )
 
-      setHistory(dayData)
+      const dataMap: Record<string, DayData> = {}
+      for (const { date, dayData } of allDayData) {
+        dataMap[date] = dayData
+      }
+
+      setLoadedData(dataMap)
       setLoading(false)
     }
-    void load()
+
+    load().catch(() => setLoading(false))
   }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="mx-auto max-w-lg px-4 py-6">
-        <h1 className="mb-4 text-2xl font-black text-gray-900">Word History</h1>
+      <main className="mx-auto max-w-lg px-4 py-8 space-y-2">
 
         {loading && <p className="text-sm text-gray-500">Loading…</p>}
 
-        {!loading && history.length === 0 && (
-          <p className="text-sm text-gray-500">
-            No past puzzle days yet — history appears here after the first
-            puzzle day has ended.
-          </p>
+        {!loading && pastDates.length === 0 && (
+          <p className="text-sm text-gray-500">No past puzzle days yet.</p>
         )}
 
-        <div className="space-y-3">
-          {history.map((day) => (
-            <DayEntry key={day.date} day={day} />
-          ))}
-        </div>
-      </div>
+        {pastDates.map((date) => (
+          <WordHistoryDay
+            key={date}
+            date={date}
+            dayData={loadedData[date] ?? null}
+          />
+        ))}
+      </main>
     </div>
   )
 }
+

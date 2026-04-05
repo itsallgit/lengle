@@ -1,6 +1,6 @@
 # Lengle — Implementation Specification
 
-> Version 1.3 — This document defines the technical architecture, infrastructure, and development conventions for building Lengle. All behaviour requirements are defined in `spec-game-design.md`.
+> Version 1.7 — This document defines the technical architecture, infrastructure, and development conventions for building Lengle. All behaviour requirements are defined in `spec-game-design.md`.
 
 ---
 
@@ -10,7 +10,7 @@
 |---|---|
 | Frontend | React 18 + TypeScript (Vite) |
 | Styling | Tailwind CSS v3 |
-| Charting | Recharts (Trends tab graphs) |
+| Charting | *(removed — Trends tab deleted in v1.7)* |
 | Hosting | AWS S3 static website hosting |
 | Data store | AWS S3 (JSON files) |
 | Infrastructure as Code | AWS CDK v2 (TypeScript) |
@@ -385,42 +385,29 @@ The lobby must detect when other players submit their words without a page refre
 ```typescript
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import pkg from './package.json'
 
 export default defineConfig({
   plugins: [react()],
   base: '/',  // CRITICAL: must be '/' for correct asset paths when served from S3 root
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),  // Exposes version from package.json
+  },
 })
+```
+
+Declare the global in `src/vite-env.d.ts`:
+```typescript
+declare const __APP_VERSION__: string
 ```
 
 ### 6.2 Configuration (`src/lib/config.ts`)
 
 All tuneable values are centralised here. **Never hardcode player names, IDs, or scoring values outside this file.**
 
-```typescript
-export const CONFIG = {
-  players: [
-    { id: 'player_1', name: 'Troy', defaultEmoji: '🎯' },
-    { id: 'player_2', name: 'Mum', defaultEmoji: '🌸' },
-    { id: 'player_3', name: 'Dad', defaultEmoji: '⚡' },
-  ],
-  scoring: {
-    correctPosition: 0,   // +0 for correct letter, correct position
-    correctLetter: 1,     // +1 for correct letter, wrong position
-    notInWord: 3,         // +3 for letter not in word
-  },
-  resetHour: 4,           // New puzzle day starts at 4am local time
-  wordLength: 5,
-  lobbyPollIntervalMs: 30_000,  // 30 seconds
-  aws: {
-    region: 'ap-southeast-2',
-    bucketName: import.meta.env.VITE_S3_BUCKET_NAME as string,
-    s3WebsiteUrl: import.meta.env.VITE_S3_WEBSITE_URL as string,
-    cognitoIdentityPoolId: import.meta.env.VITE_COGNITO_IDENTITY_POOL_ID as string,
-  },
-} as const
+`CONFIG` (as const) holds players, scoring, timing, and AWS config.
 
-export type PlayerId = typeof CONFIG.players[number]['id']
-```
+`PRESET_EMOJIS` is a top-level export (NOT inside `CONFIG`) containing ~80 preset emojis for the emoji picker. This is exported separately because it does not need `as const` and is only needed by UI components.
 
 ### 6.3 Scoring Logic (`src/lib/scoring.ts`)
 
@@ -483,28 +470,41 @@ src/components/
 ├── PlayerSelect/
 │   └── PlayerSelect.tsx
 ├── Lobby/
-│   ├── Lobby.tsx
+│   ├── Lobby.tsx                ← Home page (renamed from Lobby in v1.7)
 │   ├── WordSetForm.tsx
-│   └── PlayerStatusList.tsx
+│   └── PlayerStatusList.tsx     ← Word submission status table (today + tomorrow per player)
 ├── Puzzles/
 │   ├── PuzzleView.tsx
-│   ├── PuzzlePanel.tsx        ← re-fetches other players' guesses on solve (AC-11)
-│   ├── GuessList.tsx
-│   ├── GuessRow.tsx
+│   ├── PuzzlePanel.tsx
+│   ├── PracticeView.tsx         ← New in v1.7: client-side practice mode, route /practice
+│   ├── GuessList.tsx            ← Owns overrides state; shows Reset Tiles button
+│   ├── GuessRow.tsx             ← Accepts overrides/onOverrideChange props; per-letter dots
+│   ├── tileOverride.ts          ← TileOverride type and TILE_CYCLE constant
 │   ├── GuessInput.tsx
 │   └── OthersPanel.tsx
 ├── Leaderboard/
 │   ├── Leaderboard.tsx
-│   ├── TodayTab.tsx
-│   ├── AllTimeTab.tsx
-│   └── TrendsTab.tsx          ← Recharts; player <select> + date range <select> filters
+│   ├── TodayTab.tsx             ← Daily Scores first; per-puzzle with tile reveal; GreyQuestionTile for unsolved
+│   └── AllTimeTab.tsx           ← Completed-day count + new scoring model (v1.7)
 ├── WordHistory/
 │   ├── WordHistory.tsx
-│   └── DayEntry.tsx
+│   └── DayEntry.tsx             ← Exports WordHistoryDay; accordion item with GreyQuestionTile for incomplete
 └── shared/
-    ├── Header.tsx
+    ├── Header.tsx               ← Shows LENGLE as green letter tiles when on /lobby; page label otherwise
     └── Nav.tsx
 ```
+
+**Route inventory (as of v1.7):**
+| Path | Component | Notes |
+|---|---|---|
+| `/` | `PlayerSelect` | Public, no auth required |
+| `/lobby` | `Lobby` | Home page (protected) |
+| `/play` | `PuzzleView` | Protected |
+| `/practice` | `PracticeView` | Protected; client-side only, no S3 writes |
+| `/leaderboard` | `Leaderboard` | Protected |
+| `/history` | `WordHistory` | Protected |
+
+**Page title convention:** Pages do not render their own `<h1>` title element. The persistent `Header` shows the current page name as the centred label in the navbar. The Nav dropdown uses the same name for each route. The canonical name for each page is defined in `PAGE_LABELS` in `Header.tsx` (and mirrored in `NAV_LINKS` in `Nav.tsx`). This avoids redundant titles and keeps the UI clean on small screens.
 
 **Player context:** `PlayerContext` is defined in `App.tsx` and exported. It provides:
 - `playerId: string | null` — the currently selected player ID
@@ -513,10 +513,6 @@ src/components/
 - `setPlayerEmoji(playerId, emoji)` — updates state and writes the updated map to S3 at `data/players/profiles.json`
 
 All components that need the current player or emoji data must consume this context via the `usePlayer()` hook — do not prop-drill these values through component trees.
-
-**Trends tab filters:** The `TrendsTab` component must include two `<select>` controls:
-- Player filter: options are `All Players` + one option per player name
-- Date range filter: options are `Last 7 days`, `Last 30 days`, `All time`
 
 ### 6.7 TypeScript Interfaces (`src/types/index.ts`)
 
@@ -585,6 +581,7 @@ Client-side routing via React Router v6:
 | `/` | PlayerSelect |
 | `/lobby` | Lobby |
 | `/play` | PuzzleView |
+| `/practice` | PracticeView |
 | `/leaderboard` | Leaderboard |
 | `/history` | WordHistory |
 

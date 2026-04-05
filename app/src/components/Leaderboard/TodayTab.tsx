@@ -3,19 +3,63 @@ import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
 import { getActivePuzzleDate } from '../../lib/date'
 import { readJson } from '../../lib/s3'
-import type { DayResults, PlayerGuesses } from '../../types'
+import type { DayResults, PlayerGuesses, PuzzleWord } from '../../types'
 
 interface PuzzleStats {
   setterId: string
   setterName: string
   setterDisplay: string
-  guessCounts: Record<string, number | null> // guesser_id → count or null if unsolved
+  guessCounts: Record<string, number | null>
   winnerIds: string[]
+  word: string | null
+  allSolved: boolean
 }
 
 interface TodayData {
   results: DayResults | null
   playerGuesses: Record<string, PlayerGuesses | null>
+  puzzleWords: Record<string, string | null>
+}
+
+/** Simple green-tile word display, matching WordHistory style. */
+function WordTilesDisplay({ word }: { word: string }) {
+  return (
+    <div className="my-2 flex gap-1">
+      {word.split('').map((letter, i) => (
+        <div
+          key={i}
+          className="flex h-8 w-8 items-center justify-center rounded-md bg-green-600 text-sm font-bold text-white"
+        >
+          {letter}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Five grey question-mark tiles shown before a puzzle is fully solved. */
+function HiddenWordDisplay() {
+  return (
+    <div className="my-2 flex gap-1">
+      {Array.from({ length: CONFIG.wordLength }).map((_, i) => (
+        <div
+          key={i}
+          className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-300 text-sm font-bold text-gray-500"
+        >
+          ?
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Single small grey tile with "?" used in table cells for unsolved/unknown values. */
+function GreyQuestionTile() {
+  return (
+    <span className="inline-flex h-6 w-6 items-center justify-center rounded bg-gray-500 text-xs font-bold text-white">
+      ?
+    </span>
+  )
 }
 
 export default function TodayTab() {
@@ -33,26 +77,39 @@ export default function TodayTab() {
 
   useEffect(() => {
     async function load() {
-      // Fetch results file (may be null if day not yet finalised)
       const results = await readJson<DayResults>(
         `data/days/${date}/results.json`,
       )
 
-      // Fetch all players' guess files for live in-progress data
-      const entries = await Promise.all(
-        CONFIG.players.map(async (p) => {
-          const pg = await readJson<PlayerGuesses>(
-            `data/days/${date}/guesses-${p.id}.json`,
-          )
-          return [p.id, pg] as const
-        }),
-      )
-      const playerGuesses = Object.fromEntries(entries) as Record<
+      const [guessEntries, wordEntries] = await Promise.all([
+        Promise.all(
+          CONFIG.players.map(async (p) => {
+            const pg = await readJson<PlayerGuesses>(
+              `data/days/${date}/guesses-${p.id}.json`,
+            )
+            return [p.id, pg] as const
+          }),
+        ),
+        Promise.all(
+          CONFIG.players.map(async (p) => {
+            const pw = await readJson<PuzzleWord>(
+              `data/words/${date}/${p.id}.json`,
+            )
+            return [p.id, pw?.word ?? null] as const
+          }),
+        ),
+      ])
+
+      const playerGuesses = Object.fromEntries(guessEntries) as Record<
         string,
         PlayerGuesses | null
       >
+      const puzzleWords = Object.fromEntries(wordEntries) as Record<
+        string,
+        string | null
+      >
 
-      setData({ results, playerGuesses })
+      setData({ results, playerGuesses, puzzleWords })
       setLoading(false)
     }
     void load()
@@ -62,9 +119,8 @@ export default function TodayTab() {
     return <p className="text-sm text-gray-500">Loading…</p>
   }
 
-  const { results, playerGuesses } = data!
+  const { results, playerGuesses, puzzleWords } = data!
 
-  // Build puzzle stats from live guess files (more up-to-date than results.json)
   const puzzleStats: PuzzleStats[] = CONFIG.players.map((setter) => {
     const guessCounts: Record<string, number | null> = {}
 
@@ -82,7 +138,8 @@ export default function TodayTab() {
       guessCounts[guesser.id] = solved ? forPuzzle.length : null
     }
 
-    // Puzzle winner(s): solvers with fewest guesses
+    const allSolved = Object.values(guessCounts).every((c) => c !== null)
+
     const solvers = Object.entries(guessCounts)
       .filter(([, count]) => count !== null)
       .map(([id, count]) => ({ id, count: count! }))
@@ -99,10 +156,11 @@ export default function TodayTab() {
       setterDisplay: getPlayerDisplay(setter.id),
       guessCounts,
       winnerIds,
+      word: allSolved ? (puzzleWords[setter.id] ?? null) : null,
+      allSolved,
     }
   })
 
-  // Daily totals per player
   const dailyTotals = CONFIG.players.map((player) => {
     const pg = playerGuesses[player.id]
     const otherSetters = CONFIG.players.filter((p) => p.id !== player.id)
@@ -121,7 +179,6 @@ export default function TodayTab() {
     return { playerId: player.id, playerDisplay: getPlayerDisplay(player.id), total, solved }
   })
 
-  // Daily winner(s): lowest total among players who solved both puzzles
   const completedPlayers = dailyTotals.filter((d) => d.solved === 2)
   let dailyWinnerIds: string[] = []
   if (completedPlayers.length > 0) {
@@ -131,17 +188,18 @@ export default function TodayTab() {
       .map((d) => d.playerId)
   }
 
-  // Prefer finalised results.json for daily winner data if available
   const finalisedWinnerIds = results
     ? results.player_results
         .filter((r) => r.is_daily_winner)
         .map((r) => r.player_id)
     : dailyWinnerIds
 
+  const allPlayersCompleted = dailyTotals.every((d) => d.solved === 2)
+
   return (
     <div className="space-y-6">
-      {/* Daily winner banner */}
-      {finalisedWinnerIds.length > 0 && (
+      {/* Daily winner banner — only when ALL players have completed ALL puzzles */}
+      {allPlayersCompleted && finalisedWinnerIds.length > 0 ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <p className="text-sm font-bold text-amber-900">
             🏆{' '}
@@ -150,14 +208,65 @@ export default function TodayTab() {
               : `Joint winners: ${finalisedWinnerIds.map(getPlayerDisplay).join(' & ')}`}
           </p>
         </div>
+      ) : (
+        <p className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+          Not all players have completed today&apos;s puzzles
+        </p>
       )}
 
-      {/* Per-puzzle tables */}
+      {/* Daily Scores table — moved to top */}
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-sm font-bold text-gray-900">Daily Scores</h2>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
+              <th className="pb-1 font-medium">Player</th>
+              <th className="pb-1 text-right font-medium">Total</th>
+              <th className="pb-1 text-right font-medium"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {dailyTotals.map((row) => {
+              const isWinner = finalisedWinnerIds.includes(row.playerId)
+              const allSolved = row.solved === 2
+              return (
+                <tr
+                  key={row.playerId}
+                  className={`border-b border-gray-100 ${isWinner ? 'bg-amber-50' : ''}`}
+                >
+                  <td className="py-2 font-medium text-gray-900">
+                    {row.playerDisplay}
+                  </td>
+                  <td className="py-2 text-right font-bold text-gray-900">
+                    {allSolved ? row.total : <GreyQuestionTile />}
+                  </td>
+                  <td className="py-2 text-right">
+                    {isWinner && <span>🏆</span>}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Per-puzzle sections */}
       {puzzleStats.map((puzzle) => (
-        <div key={puzzle.setterId} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-sm font-bold text-gray-900">
+        <div
+          key={puzzle.setterId}
+          className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm"
+        >
+          <h2 className="mb-1 text-sm font-bold text-gray-900">
             {puzzle.setterDisplay}&apos;s Puzzle
           </h2>
+
+          {/* Word tile reveal */}
+          {puzzle.allSolved && puzzle.word ? (
+            <WordTilesDisplay word={puzzle.word} />
+          ) : (
+            <HiddenWordDisplay />
+          )}
+
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
@@ -173,12 +282,15 @@ export default function TodayTab() {
                   const count = puzzle.guessCounts[guesser.id]
                   const isWinner = puzzle.winnerIds.includes(guesser.id)
                   return (
-                    <tr key={guesser.id} className={`border-b border-gray-100 ${isWinner ? 'bg-amber-50' : ''}`}>
+                    <tr
+                      key={guesser.id}
+                      className={`border-b border-gray-100 ${isWinner ? 'bg-amber-50' : ''}`}
+                    >
                       <td className="py-2 font-medium text-gray-900">
                         {getPlayerDisplay(guesser.id)}
                       </td>
-                      <td className="py-2 text-right font-bold text-gray-900">
-                        {count !== null ? count : '—'}
+                      <td className="py-2 text-right">
+                        {count !== null ? <span className="text-base font-bold text-gray-900">{count}</span> : <GreyQuestionTile />}
                       </td>
                       <td className="py-2 text-right">
                         {isWinner && <span>🏆</span>}
@@ -190,44 +302,6 @@ export default function TodayTab() {
           </table>
         </div>
       ))}
-
-      {/* Daily scores table */}
-      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-bold text-gray-900">
-          Daily Totals
-        </h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
-              <th className="pb-1 font-medium">Player</th>
-              <th className="pb-1 text-right font-medium">Total</th>
-              <th className="pb-1 text-right font-medium">Solved</th>
-              <th className="pb-1 text-right font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {dailyTotals.map((row) => {
-              const isWinner = finalisedWinnerIds.includes(row.playerId)
-              return (
-                <tr key={row.playerId} className={`border-b border-gray-100 ${isWinner ? 'bg-amber-50' : ''}`}>
-                  <td className="py-2 font-medium text-gray-900">
-                    {row.playerDisplay}
-                  </td>
-                  <td className="py-2 text-right font-bold text-gray-900">
-                    {row.solved > 0 ? row.total : '—'}
-                  </td>
-                  <td className="py-2 text-right text-gray-700">
-                    {row.solved}/2
-                  </td>
-                  <td className="py-2 text-right">
-                    {isWinner && <span>🏆</span>}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
 
       <p className="text-xs text-gray-400">
         Updates as players complete puzzles throughout the day.
