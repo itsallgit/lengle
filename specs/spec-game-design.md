@@ -1,6 +1,6 @@
 # Lengle — Game Design Specification
 
-> Version 1.1 — This document defines all game behaviour and user acceptance criteria. It is implementation-agnostic.
+> Version 1.7 — This document defines all game behaviour and user acceptance criteria. It is implementation-agnostic.
 
 ---
 
@@ -102,10 +102,13 @@ Each guess produces a numeric score calculated independently across all 5 letter
 
 ### 5.4 Score Display
 - Each guess row displays two feedback elements:
-  1. **5 sorted mini colour indicators** — sorted green-first, then yellow, then grey — showing how many letters are in the correct position (green), correct letter but wrong position (yellow), or not in the word (grey). The indicators do not reveal which positions correspond to which colour.
+  1. **Mini colour tiles** — displayed as 3 stacked rows (green row, then orange row, then grey row), each row containing as many small coloured squares as there are letters scoring in that category. A row is empty (and visually absent) if there are no letters in that category. This shows the **count** of green/orange/grey letters — NOT the per-position order. These 3 rows are grouped together and appear on the same main row as the guess word tiles.
   2. **Total numeric score** displayed in a de-emphasised secondary style (plain text, no coloured background). Hidden when the score is 0 (solved).
-- Correct guesses (score = 0) show all 5 mini squares as green; the score value is not shown.
-- Example display: `CRANE` + 🟩⬜⬜⬜⬜ `(7)`
+- Correct guesses (score = 0) show all 5 mini squares as green in the first row; the score value is not shown.
+- **IMPORTANT — Lengle is NOT Wordle:** The mini tile indicators must never reveal which position each letter scored in. They only reveal the count of green/orange/grey letters. Showing position-specific information would give players too much information and is fundamentally against the game design.
+- **Tile manual annotation:** Each guess tile (the large letter tile) can be tapped to cycle through override colours: default (dark blue-grey) → green → orange → grey → back to default. There is no "light grey" step.
+- **Reset Tiles button:** A button is always visible spanning the full width of the guess tile area. When no tiles have manual overrides, the button is disabled and reads "Tap guess tiles to change colours" (greyed out). When any tile has a manual override, the button is enabled and reads "Tap to reset guess tiles".
+- Example display: `CRANE` scores 2 green, 1 orange, 2 grey → shows 2 green squares (row 1), 1 orange square (row 2), 2 grey squares (row 3), plus `(7)`
 
 ---
 
@@ -147,6 +150,14 @@ Each guess produces a numeric score calculated independently across all 5 letter
 
 ## 8. Screens & User Flows
 
+### Navigation Bar
+- A persistent navigation bar is shown on all authenticated screens (all screens except Player Select)
+- When the player is on the **Home page**, the nav bar title displays **"LENGLE"** rendered as individual green letter tiles (matching the visual style of the Play Selection screen — each letter in a coloured square tile)
+- On all other pages, the nav bar shows the name of the current page
+- Nav links: **Home**, **Play**, **Practice**, **Leaderboard**, **History**
+
+---
+
 ### Screen 1 — Player Select
 - Shown on every visit before any game content is displayed
 - Contains a dropdown of the 3 player names
@@ -156,29 +167,53 @@ Each guess produces a numeric score calculated independently across all 5 letter
 
 ---
 
-### Screen 2 — Lobby / Word Setting
+### Screen 2 — Home (formerly Lobby)
+
+**Layout:**
+- Greeting with the player's current emoji and name; **tapping the emoji in the greeting opens the in-page emoji picker** (no separate emoji button in the top-right — the emoji itself is the trigger)
+- No "Home" subtitle text under the welcome greeting
+- In-page emoji picker (expandable section showing ~80 preset emojis; selecting one updates immediately)
+- Word submission status table for today and tomorrow (all 3 players, ✅ / ⏳ for each date)
+- CTA cards section (see states below) — all CTA buttons span the full width of their container
+- Version number at bottom centre (`vX.Y.Z`)
+- "Playing as [Name] — change player" link at the very bottom
 
 **State A — Player has not yet set today's word:**
-- A prominent word entry field with a Submit button is shown
-- Inline validation feedback appears on submission failure
-- A status list shows all 3 players: ✅ Word set / ⏳ Pending
+- CTA 1: "Set Today's Word" — word entry form inline (expanded)
+- CTA 2: "Today's Puzzles" — greyed-out card (disabled, games not unlocked yet)
+- CTA 3: "Play Practice Puzzle" — violet CTA button, always available
 
 **State B — Player has set today's word, others still pending:**
-- A message indicates who still needs to set their word: `"Waiting for [Name] to set their word…"`
-- The status list is shown
-- No guessing is available
-- The lobby polls for updates so the player sees when others submit without refreshing
+- CTA 1: "Set Tomorrow's Word" form if tomorrow's word not yet set; "✅ Words set for today and tomorrow" text if both words are set
+- CTA 2: "Today's Puzzles" — greyed-out card with waiting message "Waiting for [Name] to set their word…"
+- CTA 3: "Play Practice Puzzle" — always shown
+- The home page polls for updates so the player sees when others submit without refreshing
 
 **State C — All 3 words are set:**
-- A "Play Today's Puzzles" button is shown prominently
-- The status list shows all 3 as ✅
+- CTA 1: "Set Tomorrow's Word" form if needed; confirmation text if both set
+- CTA 2: "Today's Puzzles" — violet CTA button to `/play`
+- CTA 3: "Play Practice Puzzle" — always shown
 
-**Tomorrow's word (always available):**
-- A collapsible section at the bottom of the lobby: "Set Tomorrow's Word"
-- Available as soon as today's puzzle has opened (after 4am)
+**Word submission status table:**
+- Header columns: Player | TODAY (date) | TOMORROW (date)
+- One row per player showing ✅ (set) or ⏳ (pending) for both dates
+
+**Tomorrow's word (available in all states):**
+- Shown via CTA 1 once today's word is set and tomorrow's word is not yet set
 - Same word validation rules apply
-- Once submitted, the section shows a confirmation and the submitted word (read-only)
-- This section is collapsed by default
+- Once submitted, CTA 1 shows "✅ Words set for today and tomorrow"
+
+---
+
+### Screen 2b — Practice Puzzle
+
+- Accessible via the new `/practice` route from the Home page
+- Picks a random word from the bundled word list as the target
+- Fully client-side — no S3 reads or writes; no scores are saved
+- Gameplay is identical to a regular puzzle: guess 5-letter words, see numeric scores and count-based colour tile indicators
+- No restriction on guessing own word (no setter identity in practice mode)
+- When solved: shows "Solved in N guesses 🎉", reveals the target word, and offers a "Play Again" button (picks a new random word)
+- The session is discarded when the player navigates away
 
 ---
 
@@ -207,40 +242,48 @@ Each guess produces a numeric score calculated independently across all 5 letter
 
 ### Screen 4 — Leaderboard & Metrics
 
-Three tabs: **Today**, **All Time**, **Trends**
+Two tabs: **Today**, **All Time** (Trends tab removed)
 
 #### Today Tab
-- Highlights the daily winner (or joint winners)
-- A table showing each player's guess count per puzzle and their total daily score
-- Per-puzzle winner indicated inline
+- **Daily Scores** section at the top: each player's total guess count. Shows a grey `?` tile instead of a number for any player who has not yet completed all 2 daily puzzles.
+- **Winner section**: only shown when **all players have completed all daily puzzles**. Until then, a message reads "Not all players have completed today's puzzles" in place of the winner announcement.
+- **Per-puzzle sections** below: one card per setter. Each card shows:
+  - Word tile reveal: if all non-setter players have solved the puzzle, shows the actual word as green tiles. Otherwise shows 5 grey `?` tiles.
+  - Guesser table: guess count per player (grey `?` tile for unsolved), trophy for puzzle winner.
 - Updates as players complete puzzles throughout the day
+- Unsolved/unknown player counts use a grey `?` tile (styled as a game tile), not the red ❓ emoji
 
 #### All Time Tab
-- Total daily wins per player (joint wins count for all tied players)
-- 🏆 **Best Setter** — whose words required the most average guesses to solve across all time
-- 🎯 **Sharpest Guesser** — lowest average guess count per puzzle across all time
-- 🔥 **Longest Win Streak** — most consecutive daily wins ever recorded per player
-- 📅 **Current Streak** — each player's active consecutive daily win streak
+- **Hero stat**: large number showing completed puzzle days (days where all 3 players solved all puzzles)
+- Explanation text below has generous horizontal padding on left and right
+- **Total Scores leaderboard** (sorted by score ascending — lowest wins):
+  - Each player's total guesser score across completed days
+  - Winner highlighted in amber
+  - Note: "Lowest score wins"
+- **Per-player stats table**: displayed as a table with column headers — no repeated section headers per player:
+  - Column headers: **Player** | **Guesses to Solve** (in orange, matching game colour) | **Guesses from Others** (in green, matching game colour)
+  - One row per player with their name/emoji in column 0, their guesser score in column 1, and their word setter score in column 2
 
-#### Trends Tab
-- Line graph: each player's guess score per individual guess over time, showing convergence toward 0 (measures deduction speed improvement)
-- Line graph: daily total guess count per player over time
-- Bar chart: average guesses required per puzzle word across all history (shows which words were hardest)
-- All graphs are filterable by player and date range
+**All Time scoring model:**
+- A **completed day** = a day where every player solved every other player's puzzle (`is_correct === true` for all 6 combinations)
+- **Guesser score** = total guesses a player made on all other players' puzzles (completed days only)
+- **Word setter score** = total guesses other players made on a player's puzzle words (completed days only)
+- Overall winner = player(s) with lowest guesser score
 
 ---
 
 ### Screen 5 — Word History
 
 - Accessible from the main navigation
-- Shows a reverse-chronological list of all past puzzle days
-- Each day entry is expandable and shows:
+- Shows a reverse-chronological **accordion list** of all past puzzle days
+- **Accordion header** for each day shows:
   - The date
-  - Each puzzle word and who set it
-  - The daily winner
-  - Each player's full guess breakdown for each puzzle: every guess made, the total score per guess, and how many guesses it took to solve
+  - A completion indicator (e.g. checkmark) if all daily puzzles were completed by all players that day
+- **Expanded accordion** for a day is divided into **3 sections** — one per puzzle setter:
+  - **Puzzle word display**: shown as green letter tiles if all players finished that puzzle; shown as 5 grey `?` tiles if not all players finished
+  - **Setter identity**: the setter's player name and emoji displayed next to the puzzle word
+  - **Guess counts**: one row per non-setter player showing their total guess count for that puzzle. If a player did not complete the puzzle, shows a grey `?` tile instead of a number
 - Current day's words and guesses are **not** shown in Word History until the puzzle day has ended (i.e. after 4am the following day)
-- Unsolved puzzles from past days show the word and the player's incomplete guess history with a "Not solved" label
 
 ---
 
@@ -265,7 +308,7 @@ Three tabs: **Today**, **All Time**, **Trends**
 | AC-15 | The app never displays a timer anywhere |
 | AC-16 | The daily reset occurs at 4am local device time |
 | AC-17 | The last selected player name is remembered across visits |
-| AC-18 | Each guess shows 5 sorted mini colour indicators (green/yellow/grey) plus a de-emphasised total score; correct guesses show all-green indicators with no score value |
+| AC-18 | Each guess shows mini colour tile indicators (count-based, displayed as 3 stacked rows: green / orange / grey) plus a de-emphasised total score; correct guesses show all-green indicators with no score value; mini tiles never reveal per-position information |
 | AC-19 | The lobby status updates automatically without a manual page refresh |
 | AC-20 | The first player to open the app after 4am triggers finalisation of the previous day's results if not already written |
 
@@ -274,11 +317,12 @@ Three tabs: **Today**, **All Time**, **Trends**
 ## 11. Player Emoji
 
 - Each player can select a custom emoji to represent them throughout the app
-- A grid of 24 preset emojis is available on the Player Select screen
+- A grid of ~80 preset emojis is available on **both** the Player Select screen and the Home page (in-page emoji picker)
 - The selected emoji is displayed alongside the player's name in all views (leaderboard, lobby, puzzle panels, word history)
 - Emoji preferences are stored in S3 at `data/players/profiles.json` and are shared across all devices
 - Each player has a `defaultEmoji` defined in config, which is used if no custom emoji has been saved
 - Emoji changes take effect immediately in the UI and are persisted to S3 in the background
+- The expanded preset list (~80 emojis) is defined in `PRESET_EMOJIS` in `config.ts` and includes animals, nature, food, activities, and misc
 
 ---
 

@@ -5,6 +5,7 @@ import { writeToS3 } from './lib/s3'
 import PlayerSelect from './components/PlayerSelect/PlayerSelect'
 import Lobby from './components/Lobby/Lobby'
 import PuzzleView from './components/Puzzles/PuzzleView'
+import PracticeView from './components/Puzzles/PracticeView'
 import Leaderboard from './components/Leaderboard/Leaderboard'
 import WordHistory from './components/WordHistory/WordHistory'
 import { useResultsFinalisation } from './hooks/useResultsFinalisation'
@@ -71,6 +72,7 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/lobby" element={<Lobby />} />
         <Route path="/play" element={<PuzzleView />} />
+        <Route path="/practice" element={<PracticeView />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/history" element={<WordHistory />} />
       </Route>

@@ -6,12 +6,10 @@ import { scoreGuess } from '../../lib/scoring'
 import type { GuessEntry, PlayerGuesses, PuzzleWord } from '../../types'
 import GuessInput from './GuessInput'
 import GuessList from './GuessList'
-import OthersPanel from './OthersPanel'
 
 interface PuzzlePanelProps {
   setterId: string
   currentPlayerId: string
-  otherGuesserId: string
   /** The current player's own puzzle word — passed for AC-01 validation in GuessInput. */
   ownWord: string | null
   date: string
@@ -20,7 +18,6 @@ interface PuzzlePanelProps {
 export default function PuzzlePanel({
   setterId,
   currentPlayerId,
-  otherGuesserId,
   ownWord,
   date,
 }: PuzzlePanelProps) {
@@ -29,8 +26,6 @@ export default function PuzzlePanel({
   const [targetWord, setTargetWord] = useState<string | null>(null)
   /** Current player's guesses on this puzzle, filtered to setterId. */
   const [myGuesses, setMyGuesses] = useState<GuessEntry[]>([])
-  /** Other guesser's summary info on this puzzle, keyed by their player id. */
-  const [othersInfo, setOthersInfo] = useState<Record<string, { guessCount: number; solved: boolean }>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expanded, setExpanded] = useState(true)
@@ -48,13 +43,10 @@ export default function PuzzlePanel({
     async function loadAll() {
       setIsLoading(true)
 
-      const [targetFile, myGuessFile, otherGuessFile] = await Promise.all([
+      const [targetFile, myGuessFile] = await Promise.all([
         readJson<PuzzleWord>(`data/words/${date}/${setterId}.json`),
         readJson<PlayerGuesses>(
           `data/days/${date}/guesses-${currentPlayerId}.json`,
-        ),
-        readJson<PlayerGuesses>(
-          `data/days/${date}/guesses-${otherGuesserId}.json`,
         ),
       ])
 
@@ -64,15 +56,6 @@ export default function PuzzlePanel({
       setMyGuesses(
         (myGuessFile?.guesses ?? []).filter((g) => g.puzzle_setter_id === setterId),
       )
-      const filtered = (otherGuessFile?.guesses ?? []).filter(
-        (g) => g.puzzle_setter_id === setterId,
-      )
-      setOthersInfo({
-        [otherGuesserId]: {
-          guessCount: filtered.length,
-          solved: filtered.some((g) => g.is_correct),
-        },
-      })
 
       setIsLoading(false)
     }
@@ -81,7 +64,7 @@ export default function PuzzlePanel({
     return () => {
       cancelled = true
     }
-  }, [date, setterId, currentPlayerId, otherGuesserId])
+  }, [date, setterId, currentPlayerId])
 
   async function handleGuessSubmit(word: string) {
     if (!targetWord || isSubmitting) return
@@ -177,18 +160,18 @@ export default function PuzzlePanel({
               <p className="font-semibold text-green-600">
                 Solved in {myGuesses.length} {myGuesses.length === 1 ? 'guess' : 'guesses'} 🎉
               </p>
+            ) : !targetWord ? (
+              <p className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+                This puzzle word hasn’t been set yet.
+              </p>
             ) : (
               <GuessInput
                 onSubmit={handleGuessSubmit}
-                disabled={isSubmitting || !targetWord}
+                disabled={isSubmitting}
                 ownWord={ownWord}
               />
             )}
           </div>
-
-          <OthersPanel
-            others={Object.entries(othersInfo).map(([id, info]) => ({ playerId: id, ...info }))}
-          />
         </div>
       </div>
     </div>

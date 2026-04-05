@@ -7,10 +7,11 @@ interface NavLink {
 }
 
 const NAV_LINKS: NavLink[] = [
-  { to: '/lobby', label: 'Lobby' },
+  { to: '/lobby', label: 'Home' },
   { to: '/play', label: 'Play' },
-  { to: '/leaderboard', label: 'Board' },
-  { to: '/history', label: 'History' },
+  { to: '/practice', label: 'Practice' },
+  { to: '/leaderboard', label: 'Scores' },
+  { to: '/history', label: 'Past Puzzles' },
 ]
 
 /**
@@ -41,7 +42,7 @@ export function NavMenu() {
 
       {/* Dropdown — always in DOM, animated via max-height */}
       <div
-        className={`absolute top-full right-0 w-48 bg-gray-900 rounded-b-lg shadow-lg z-50 overflow-hidden transition-all duration-200 ease-in-out ${open ? 'max-h-48 border border-gray-700' : 'max-h-0'}`}
+        className={`absolute top-full right-0 w-48 bg-gray-900 rounded-b-lg shadow-lg z-50 overflow-hidden transition-all duration-200 ease-in-out ${open ? 'max-h-64 border border-gray-700' : 'max-h-0'}`}
         aria-hidden={!open}
       >
         {NAV_LINKS.map(({ to, label }) => (

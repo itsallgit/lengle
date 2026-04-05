@@ -3,10 +3,10 @@ import { getActivePuzzleDate } from '../../lib/date'
 import { NavMenu } from './Nav'
 
 const PAGE_LABELS: Record<string, string> = {
-  '/lobby': 'Lobby',
   '/play': 'Play',
-  '/leaderboard': 'Board',
-  '/history': 'History',
+  '/practice': 'Practice',
+  '/leaderboard': 'Scores',
+  '/history': 'Past Puzzles',
 }
 
 /**
@@ -27,16 +27,29 @@ export default function Header() {
     month: 'long',
   })
 
+  const isHome = pathname === '/lobby'
+
   return (
     <div className="sticky top-0 z-40 bg-gray-900 shadow-md">
       <header className="px-4 py-3">
         <div className="relative flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-400">{formatted}</span>
-          {pageLabel && (
+          <span className={`text-sm font-medium text-gray-400 ${isHome ? 'invisible' : ''}`}>{formatted}</span>
+          {isHome ? (
+            <div className="absolute left-1/2 -translate-x-1/2 flex gap-1">
+              {'LENGLE'.split('').map((letter, i) => (
+                <span
+                  key={i}
+                  className="flex h-7 w-7 items-center justify-center rounded bg-green-500 text-xs font-bold text-white"
+                >
+                  {letter}
+                </span>
+              ))}
+            </div>
+          ) : pageLabel ? (
             <span className="absolute left-1/2 -translate-x-1/2 text-base font-bold text-white">
               {pageLabel}
             </span>
-          )}
+          ) : null}
           <NavMenu />
         </div>
       </header>

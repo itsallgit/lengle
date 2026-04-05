@@ -43,6 +43,7 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
     onSubmit(word)
     setValue('')
     setError(null)
+    inputRef.current?.focus()
   }
 
   const canSubmit = value.length === CONFIG.wordLength && !disabled
@@ -57,7 +58,7 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
           disabled={disabled}
           maxLength={CONFIG.wordLength}
           ref={inputRef}
-          className="flex-1 rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-center text-lg font-bold uppercase tracking-widest text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-50"
+          className="min-w-0 flex-1 rounded-xl border-2 border-gray-200 bg-white px-2 py-3 text-center text-lg font-bold uppercase tracking-widest text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-50"
           aria-label="Enter guess"
           autoComplete="off"
           autoCapitalize="characters"
@@ -67,7 +68,7 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
         <button
           type="submit"
           disabled={!canSubmit}
-          className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-bold text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-offset-2 disabled:opacity-40"
+          className="shrink-0 rounded-xl bg-gray-900 px-5 py-3 text-sm font-bold text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-offset-2 disabled:opacity-40"
         >
           Go
         </button>

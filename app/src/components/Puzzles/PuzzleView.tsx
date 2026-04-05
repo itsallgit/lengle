@@ -34,25 +34,15 @@ export default function PuzzleView() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="w-full divide-y divide-gray-200 sm:divide-y-0 sm:space-y-4 sm:px-4 sm:py-6">
-        {setters.map((setter) => {
-          // The other guesser is the remaining player: neither the setter nor
-          // the current player.
-          const otherGuesser = CONFIG.players.find(
-            (p) => p.id !== playerId && p.id !== setter.id,
-          )
-          if (!otherGuesser) return null
-
-          return (
-            <PuzzlePanel
-              key={setter.id}
-              setterId={setter.id}
-              currentPlayerId={playerId}
-              otherGuesserId={otherGuesser.id}
-              ownWord={ownWord}
-              date={date}
-            />
-          )
-        })}
+        {setters.map((setter) => (
+          <PuzzlePanel
+            key={setter.id}
+            setterId={setter.id}
+            currentPlayerId={playerId}
+            ownWord={ownWord}
+            date={date}
+          />
+        ))}
       </div>
     </div>
   )

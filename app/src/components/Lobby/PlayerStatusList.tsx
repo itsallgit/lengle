@@ -1,42 +1,64 @@
-import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
-import type { DayStatus } from '../../types'
+import { usePlayer } from '../../App'
 
 interface Props {
-  status: DayStatus | null
+  todayDate: string
+  tomorrowDate: string
+  todaySetByPlayer: Record<string, boolean>
+  tomorrowSetByPlayer: Record<string, boolean>
 }
 
-/**
- * Renders the lobby status list showing which players have set their word
- * for today. Green row for submitted, amber row for pending (spec §8 Screen 2).
- *
- * Accepts null status while the initial fetch is in flight — renders all
- * players as pending until real data arrives.
- */
-export default function PlayerStatusList({ status }: Props) {
+function formatShort(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const d = new Date(year, month - 1, day, 12)
+  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+}
+
+export default function PlayerStatusList({
+  todayDate,
+  tomorrowDate,
+  todaySetByPlayer,
+  tomorrowSetByPlayer,
+}: Props) {
   const { playerEmojis } = usePlayer()
 
   return (
-    <ul className="space-y-2">
-      {CONFIG.players.map(player => {
-        const hasSet = status?.words_set[player.id] === true
-        const emoji = playerEmojis[player.id] ?? player.defaultEmoji
-        return (
-          <li
-            key={player.id}
-            className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium ${
-              hasSet
-                ? 'border-green-200 bg-green-50 text-green-800'
-                : 'border-amber-200 bg-amber-50 text-amber-800'
-            }`}
-          >
-            <span>{emoji} {player.name}</span>
-            <span aria-label={hasSet ? 'Submitted' : 'Pending'}>
-              {hasSet ? '✅' : '⏳'}
-            </span>
-          </li>
-        )
-      })}
-    </ul>
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-200 bg-gray-50">
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Player</th>
+            <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">
+              <div>TODAY</div>
+              <div className="font-normal text-gray-400">{formatShort(todayDate)}</div>
+            </th>
+            <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">
+              <div>TOMORROW</div>
+              <div className="font-normal text-gray-400">{formatShort(tomorrowDate)}</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {CONFIG.players.map((player) => {
+            const emoji = playerEmojis[player.id] ?? player.defaultEmoji
+            const todaySet = todaySetByPlayer[player.id] === true
+            const tomorrowSet = tomorrowSetByPlayer[player.id] === true
+            return (
+              <tr key={player.id} className="border-b border-gray-100 last:border-0">
+                <td className="px-4 py-3 font-medium text-gray-900">
+                  {emoji} {player.name}
+                </td>
+                <td className="px-4 py-3 text-center text-base">
+                  {todaySet ? '✅' : '⏳'}
+                </td>
+                <td className="px-4 py-3 text-center text-base">
+                  {tomorrowSet ? '✅' : '⏳'}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
   )
 }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { usePlayer } from '../../App'
 import { getActivePuzzleDate, isPastDate } from '../../lib/date'
 import { readJson, writeToS3, listS3Keys } from '../../lib/s3'
-import { CONFIG } from '../../lib/config'
+import { CONFIG, PRESET_EMOJIS } from '../../lib/config'
 import type { DayStatus, PuzzleWord } from '../../types'
 import Header from '../shared/Header'
 import PlayerStatusList from './PlayerStatusList'
@@ -11,11 +11,9 @@ import WordSetForm from './WordSetForm'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Returns the puzzle date string for the day after the active puzzle date. */
 function getTomorrowPuzzleDate(): string {
-  const active = getActivePuzzleDate() // YYYY-MM-DD
+  const active = getActivePuzzleDate()
   const [year, month, day] = active.split('-').map(Number)
-  // Parse at local noon to avoid DST edge cases
   const date = new Date(year, month - 1, day, 12)
   date.setDate(date.getDate() + 1)
   const y = date.getFullYear()
@@ -24,15 +22,9 @@ function getTomorrowPuzzleDate(): string {
   return `${y}-${m}-${d}`
 }
 
-// ── Lobby state machine ───────────────────────────────────────────────────────
-
-/** The three mutually exclusive lobby states (spec §8 Screen 2). */
 type LobbyState = 'A' | 'B' | 'C'
 
-function deriveLobbyState(
-  playerHasSetWord: boolean,
-  status: DayStatus | null,
-): LobbyState {
+function deriveLobbyState(playerHasSetWord: boolean, status: DayStatus | null): LobbyState {
   if (!playerHasSetWord) return 'A'
   if (status?.unlocked) return 'C'
   return 'B'
@@ -40,31 +32,12 @@ function deriveLobbyState(
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-/**
- * Screen 2 — Lobby / Word Setting (spec §8 Screen 2).
- *
- * State A: player has not set today's word — shows WordSetForm.
- * State B: player has set word, others still pending — shows waiting message
- *          and polls status.json every 30 s (spec §5.7).
- * State C: all words set and unlocked — shows "Play Today's Puzzles" button.
- *
- * An always-visible "Set Tomorrow's Word" collapsible section is available in
- * all states once today's puzzle is open (spec §8 Screen 2, spec §3.2 AC-06).
- *
- * On mount:
- *   1. Fetches status.json and today's own word file in parallel to establish
- *      initial state without flicker.
- *   2. Fetches tomorrow's own word file to check if it is already set.
- *   3. Loads all past puzzle words into a Set for uniqueness validation (AC-03).
- */
 export default function Lobby() {
-  const { playerId } = usePlayer()
+  const { playerId, playerEmojis, setPlayerEmoji } = usePlayer()
   const navigate = useNavigate()
 
   const todayDate = getActivePuzzleDate()
   const tomorrowDate = getTomorrowPuzzleDate()
-
-  // ── Core state ─────────────────────────────────────────────────────────────
 
   const [status, setStatus] = useState<DayStatus | null>(null)
   const [playerHasSetToday, setPlayerHasSetToday] = useState(false)
@@ -72,13 +45,12 @@ export default function Lobby() {
   const [usedWords, setUsedWords] = useState<ReadonlySet<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
-  // "Set Tomorrow's Word" collapsible is collapsed by default (spec §8 Screen 2)
-  const [tomorrowOpen, setTomorrowOpen] = useState(false)
+  const [todaySetByPlayer, setTodaySetByPlayer] = useState<Record<string, boolean>>({})
+  const [tomorrowSetByPlayer, setTomorrowSetByPlayer] = useState<Record<string, boolean>>({})
 
-  // Guard against setting state after unmount
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+
   const cancelledRef = useRef(false)
-
-  // ── Mount: parallel initial fetches ───────────────────────────────────────
 
   useEffect(() => {
     cancelledRef.current = false
@@ -86,26 +58,39 @@ export default function Lobby() {
     async function initialFetch() {
       if (!playerId) return
 
-      // 1. Fetch today's status and own word file in parallel (no flicker)
       const statusKey = `data/days/${todayDate}/status.json`
       const ownWordKey = `data/words/${todayDate}/${playerId}.json`
       const tomorrowWordKey = `data/words/${tomorrowDate}/${playerId}.json`
 
-      const [fetchedStatus, ownWord, fetchedTomorrowWord] = await Promise.all([
+      // Fetch status + own word files + all players' today/tomorrow words in parallel
+      const allPlayerWordFetches = CONFIG.players.flatMap(p => [
+        readJson<PuzzleWord>(`data/words/${todayDate}/${p.id}.json`).then(pw => ({ type: 'today' as const, id: p.id, set: pw !== null })),
+        readJson<PuzzleWord>(`data/words/${tomorrowDate}/${p.id}.json`).then(pw => ({ type: 'tomorrow' as const, id: p.id, set: pw !== null })),
+      ])
+
+      const [fetchedStatus, ownWord, fetchedTomorrowWord, ...playerWordResults] = await Promise.all([
         readJson<DayStatus>(statusKey),
         readJson<PuzzleWord>(ownWordKey),
         readJson<PuzzleWord>(tomorrowWordKey),
+        ...allPlayerWordFetches,
       ])
 
       if (cancelledRef.current) return
 
+      const todayMap: Record<string, boolean> = {}
+      const tomorrowMap: Record<string, boolean> = {}
+      for (const result of playerWordResults) {
+        if (result.type === 'today') todayMap[result.id] = result.set
+        else tomorrowMap[result.id] = result.set
+      }
+
       setStatus(fetchedStatus)
       setPlayerHasSetToday(ownWord !== null)
       setTomorrowWord(fetchedTomorrowWord?.word ?? null)
+      setTodaySetByPlayer(todayMap)
+      setTomorrowSetByPlayer(tomorrowMap)
       setLoading(false)
 
-      // 2. Load used words in the background for uniqueness validation (AC-03).
-      //    Non-blocking — submit will fall back gracefully if not yet ready.
       loadUsedWords()
     }
 
@@ -117,25 +102,16 @@ export default function Lobby() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerId, todayDate])
 
-  // ── Load all previously used puzzle words (AC-03) ─────────────────────────
-
   async function loadUsedWords() {
     try {
       const allKeys = await listS3Keys('data/words/')
-      // Only words from past dates contribute to the uniqueness set
       const pastKeys = allKeys.filter(key => {
-        // Key format: data/words/{YYYY-MM-DD}/{setter-id}.json
         const parts = key.split('/')
-        const datePart = parts[2] // index 2 after split on '/'
+        const datePart = parts[2]
         return datePart !== undefined && isPastDate(datePart)
       })
-
-      const wordFiles = await Promise.all(
-        pastKeys.map(key => readJson<PuzzleWord>(key)),
-      )
-
+      const wordFiles = await Promise.all(pastKeys.map(key => readJson<PuzzleWord>(key)))
       if (cancelledRef.current) return
-
       const wordSet = new Set<string>(
         wordFiles
           .filter((f): f is PuzzleWord => f !== null)
@@ -143,35 +119,28 @@ export default function Lobby() {
       )
       setUsedWords(wordSet)
     } catch {
-      // Non-fatal — uniqueness check is skipped if set is not ready (spec §5.5)
+      // Non-fatal — uniqueness check skipped if not ready
     }
   }
 
-  // ── Polling (State B only — spec §5.7) ────────────────────────────────────
-
+  // Polling (State B only)
   useEffect(() => {
     const lobbyState = deriveLobbyState(playerHasSetToday, status)
     if (lobbyState !== 'B') return
 
     const statusKey = `data/days/${todayDate}/status.json`
-
     const intervalId = setInterval(async () => {
       const refreshed = await readJson<DayStatus>(statusKey)
       if (cancelledRef.current) return
       if (refreshed !== null) {
         setStatus(refreshed)
-        // Stop polling immediately once unlocked
-        if (refreshed.unlocked) {
-          clearInterval(intervalId)
-        }
+        if (refreshed.unlocked) clearInterval(intervalId)
       }
     }, CONFIG.lobbyPollIntervalMs)
 
     return () => clearInterval(intervalId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerHasSetToday, status?.unlocked, todayDate])
-
-  // ── Word submission ────────────────────────────────────────────────────────
 
   async function submitWord(word: string, dateStr: string): Promise<void> {
     if (!playerId) return
@@ -185,12 +154,9 @@ export default function Lobby() {
     }
     await writeToS3(wordKey, wordData)
 
-    // Update status.json — read current (may be null for first player), merge,
-    // recompute unlocked, write back. Last-write-wins is safe (spec §5.4).
     if (dateStr === todayDate) {
       const statusKey = `data/days/${todayDate}/status.json`
       const currentStatus = await readJson<DayStatus>(statusKey)
-
       const mergedWordsSet: Record<string, boolean> = {
         ...(currentStatus?.words_set ?? {}),
         [playerId]: true,
@@ -206,68 +172,136 @@ export default function Lobby() {
       if (!cancelledRef.current) {
         setStatus(newStatus)
         setPlayerHasSetToday(true)
+        setTodaySetByPlayer(prev => ({ ...prev, [playerId]: true }))
       }
     } else {
-      // Tomorrow's word — no status.json update needed
       if (!cancelledRef.current) {
         setTomorrowWord(word.toUpperCase())
+        setTomorrowSetByPlayer(prev => ({ ...prev, [playerId]: true }))
       }
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   if (!playerId) return null
 
   const lobbyState = deriveLobbyState(playerHasSetToday, status)
-
-  const currentPlayerName =
-    CONFIG.players.find(p => p.id === playerId)?.name ?? playerId
+  const currentPlayerConfig = CONFIG.players.find(p => p.id === playerId)
+  const currentPlayerName = currentPlayerConfig?.name ?? playerId
+  const currentEmoji = playerEmojis[playerId] ?? currentPlayerConfig?.defaultEmoji ?? '🎯'
 
   const pendingPlayers = CONFIG.players.filter(
     p => p.id !== playerId && status?.words_set[p.id] !== true,
   )
 
+  const bothWordsSet = playerHasSetToday && tomorrowWord !== null
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-
       <main className="mx-auto max-w-lg space-y-6 px-4 py-8">
-        {/* ── Page title ── */}
+
+        {/* Greeting — emoji itself is the trigger for the picker */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Hi, {currentPlayerName}!
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker(v => !v)}
+              className="text-2xl rounded-lg p-0.5 hover:bg-gray-200 transition-colors"
+              aria-label="Change emoji"
+              title="Change your emoji"
+            >
+              {currentEmoji}
+            </button>
+            {' '}Hi, {currentPlayerName}!
           </h1>
-          <p className="mt-0.5 text-sm text-gray-500">
-            {loading ? 'Loading…' : "Today's puzzle lobby"}
-          </p>
         </div>
 
-        {/* ── State A: player has not set today's word ── */}
-        {!loading && lobbyState === 'A' && (
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <WordSetForm
-              label="Set today's word"
-              usedWords={usedWords}
-              onSubmit={word => submitWord(word, todayDate)}
-            />
+        {/* Emoji picker */}
+        {showEmojiPicker && (
+          <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="mb-2 text-sm font-medium text-gray-700">Choose your emoji</p>
+            <div className="grid grid-cols-8 gap-1">
+              {PRESET_EMOJIS.map(emoji => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={async () => {
+                    await setPlayerEmoji(playerId, emoji)
+                    setShowEmojiPicker(false)
+                  }}
+                  className={`rounded-lg p-1 text-xl hover:bg-violet-100 transition-colors ${
+                    currentEmoji === emoji ? 'bg-violet-200 ring-2 ring-violet-500' : ''
+                  }`}
+                  aria-label={emoji}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
           </section>
         )}
 
-        {/* ── State B: player set word, waiting for others ── */}
+        {/* Word submission status table */}
+        {!loading && (
+          <PlayerStatusList
+            todayDate={todayDate}
+            tomorrowDate={tomorrowDate}
+            todaySetByPlayer={todaySetByPlayer}
+            tomorrowSetByPlayer={tomorrowSetByPlayer}
+          />
+        )}
+
+        {/* CTA 1 — Set Words */}
+        {!loading && !bothWordsSet && (
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            {lobbyState === 'A' ? (
+              <>
+                <h2 className="mb-4 text-sm font-bold text-gray-900">Set Today's Word</h2>
+                <WordSetForm
+                  label="Enter a 5-letter word for others to guess"
+                  usedWords={usedWords}
+                  onSubmit={word => submitWord(word, todayDate)}
+                />
+              </>
+            ) : !tomorrowWord ? (
+              <>
+                <h2 className="mb-1 text-sm font-bold text-gray-900">Set Tomorrow's Word</h2>
+                <p className="mb-4 text-xs text-gray-500">Today's word is already set ✅</p>
+                <WordSetForm
+                  label="Enter a 5-letter word for tomorrow"
+                  usedWords={usedWords}
+                  onSubmit={word => submitWord(word, tomorrowDate)}
+                />
+              </>
+            ) : null}
+          </section>
+        )}
+
+        {bothWordsSet && !loading && (
+          <p className="text-center text-sm text-gray-500">✅ Words set for today and tomorrow</p>
+        )}
+
+        {/* CTA 2 — Play Today's Puzzles */}
+        {!loading && lobbyState === 'C' && (
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-center space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Today's Puzzles</h2>
+              <p className="mt-1 text-xs text-gray-500">All words are set — let's play!</p>
+            </div>
+            <button
+              onClick={() => navigate('/play')}
+              className="w-full rounded-xl bg-violet-700 px-6 py-3 text-sm font-semibold text-white hover:bg-violet-800"
+            >
+              Play Today's Puzzles
+            </button>
+          </section>
+        )}
+
         {!loading && lobbyState === 'B' && (
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-1">
-            {pendingPlayers.length === 1 ? (
-              <p className="text-sm text-gray-700">
-                Waiting for{' '}
-                <span className="font-semibold">
-                  {CONFIG.players.find(p => p.id === pendingPlayers[0].id)
-                    ?.name}
-                </span>{' '}
-                to set their word…
-              </p>
-            ) : (
-              <p className="text-sm text-gray-700">
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-center space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Today's Puzzles</h2>
+              <p className="mt-1 text-xs text-gray-500">
                 Waiting for{' '}
                 {pendingPlayers.map((p, i) => (
                   <span key={p.id}>
@@ -277,79 +311,40 @@ export default function Lobby() {
                     {i < pendingPlayers.length - 1 ? ' and ' : ''}
                   </span>
                 ))}{' '}
-                to set their word…
+                to set {pendingPlayers.length === 1 ? 'their' : 'their'} word…
               </p>
-            )}
-            <p className="text-xs text-gray-400">
-              Checking for updates every 30 seconds
-            </p>
-          </section>
-        )}
-
-        {/* ── State C: all words set, ready to play ── */}
-        {!loading && lobbyState === 'C' && (
-          <section className="rounded-xl border border-green-200 bg-green-50 p-6 shadow-sm text-center space-y-4">
-            <p className="text-sm font-medium text-green-800">
-              All words are set — let&rsquo;s play!
-            </p>
+            </div>
             <button
-              onClick={() => navigate('/play')}
-              className="rounded-md bg-violet-700 px-6 py-3 text-sm font-semibold text-white hover:bg-violet-800"
+              disabled
+              className="w-full rounded-xl bg-gray-200 px-6 py-3 text-sm font-semibold text-gray-400 cursor-not-allowed"
             >
-              Play Today&rsquo;s Puzzles
+              Waiting for others…
             </button>
           </section>
         )}
 
-        {/* ── Status list (visible in all states once loaded) ── */}
+        {/* CTA 3 — Practice Puzzle (always shown) */}
         {!loading && (
-          <section>
-            <h2 className="mb-2 text-sm font-medium text-gray-500 uppercase tracking-wide">
-              Today&rsquo;s word submission status
-            </h2>
-            <PlayerStatusList status={status} />
-          </section>
-        )}
-
-        {/* ── Tomorrow's word (collapsible, always available after 4am, AC-06) ── */}
-        {!loading && (
-          <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-center space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Practice Puzzle</h2>
+              <p className="mt-1 text-xs text-gray-500">Play with a random word — no scores saved</p>
+            </div>
             <button
-              type="button"
-              onClick={() => setTomorrowOpen(open => !open)}
-              aria-expanded={tomorrowOpen}
-              className="flex w-full items-center justify-between px-6 py-4 text-left text-sm font-medium text-gray-700 hover:bg-gray-50"
+              onClick={() => navigate('/practice')}
+              className="w-full rounded-xl bg-violet-700 px-6 py-3 text-sm font-semibold text-white hover:bg-violet-800"
             >
-              <span>Set Tomorrow&rsquo;s Word</span>
-              <span aria-hidden className="text-gray-400">
-                {tomorrowOpen ? '▲' : '▼'}
-              </span>
+              Play Practice Puzzle
             </button>
-
-            {tomorrowOpen && (
-              <div className="border-t border-gray-100 px-6 py-5">
-                {tomorrowWord !== null ? (
-                  <div className="space-y-1">
-                    <p className="text-sm text-green-700 font-medium">
-                      ✅ Word set for tomorrow
-                    </p>
-                    <p className="font-mono text-lg font-bold tracking-widest text-gray-900">
-                      {tomorrowWord}
-                    </p>
-                  </div>
-                ) : (
-                  <WordSetForm
-                    label={`Set your word for ${tomorrowDate}`}
-                    usedWords={usedWords}
-                    onSubmit={word => submitWord(word, tomorrowDate)}
-                  />
-                )}
-              </div>
-            )}
           </section>
         )}
 
-        {/* Player identity reminder */}
+        {/* Version number */}
+        {!loading && (
+          <p className="text-center text-xs text-gray-400">v{__APP_VERSION__}</p>
+        )}
+
+        {/* Player identity */}
         {!loading && (
           <p className="text-center text-xs text-gray-400">
             Playing as{' '}
@@ -368,3 +363,4 @@ export default function Lobby() {
     </div>
   )
 }
+
