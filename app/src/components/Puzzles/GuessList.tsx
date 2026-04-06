@@ -1,15 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { GuessEntry } from '../../types'
 import GuessRow from './GuessRow'
 import { type TileOverride } from './tileOverride'
 
 interface GuessListProps {
   guesses: GuessEntry[]
+  initialOverrides?: (TileOverride | null)[][]
+  onSolveSnapshot?: (overrides: (TileOverride | null)[][], guessCount: number) => void
 }
 
-export default function GuessList({ guesses }: GuessListProps) {
+export default function GuessList({ guesses, initialOverrides, onSolveSnapshot }: GuessListProps) {
   const [overrides, setOverrides] = useState<(TileOverride | null)[][]>(() =>
-    guesses.map((g) => Array(g.word.length).fill(null)),
+    initialOverrides && initialOverrides.length === guesses.length
+      ? initialOverrides
+      : guesses.map((g) => Array(g.word.length).fill(null)),
   )
 
   // When a new guess is added, push a fresh all-null row
@@ -25,6 +29,17 @@ export default function GuessList({ guesses }: GuessListProps) {
     })
   }, [guesses.length, guesses])
 
+  const wasSolvedRef = useRef(false)
+  const isSolved = guesses.some((g) => g.is_correct)
+
+  useEffect(() => {
+    if (isSolved && !wasSolvedRef.current) {
+      wasSolvedRef.current = true
+      onSolveSnapshot?.(overrides, guesses.length)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSolved])
+
   const hasOverrides = overrides.some((row) => row.some((v) => v !== null))
 
   function handleOverrideChange(rowIndex: number, tileIndex: number, value: TileOverride | null) {
@@ -37,6 +52,20 @@ export default function GuessList({ guesses }: GuessListProps) {
 
   function resetOverrides() {
     setOverrides(guesses.map((g) => Array(g.word.length).fill(null)))
+  }
+
+  function handleSetAllLetterToColor(letter: string, color: TileOverride | null) {
+    const upperLetter = letter.toUpperCase()
+    setOverrides((prev) =>
+      prev.map((row, rowIndex) =>
+        row.map((override, tileIndex) => {
+          if (guesses[rowIndex]?.word[tileIndex]?.toUpperCase() === upperLetter) {
+            return color
+          }
+          return override
+        })
+      )
+    )
   }
 
   return (
@@ -52,10 +81,12 @@ export default function GuessList({ guesses }: GuessListProps) {
           onOverrideChange={(tileIndex, value) =>
             handleOverrideChange(index, tileIndex, value)
           }
+          onSetAllLetterToColor={handleSetAllLetterToColor}
+          disabled={isSolved}
         />
       ))}
-      {/* Reset Tiles — only shown after the first guess; disabled when no overrides exist */}
-      {guesses.length > 0 && (
+      {/* Reset Tiles — only shown after the first guess; hidden when solved; disabled when no overrides exist */}
+      {guesses.length > 0 && !isSolved && (
         <button
           type="button"
           onClick={hasOverrides ? resetOverrides : undefined}
@@ -66,7 +97,7 @@ export default function GuessList({ guesses }: GuessListProps) {
               : 'mt-6 w-full rounded-lg border border-gray-200 bg-gray-100 py-1.5 text-xs font-medium text-gray-400 cursor-default'
           }
         >
-          {hasOverrides ? 'Tap to reset tiles' : 'Tap tiles to change colours'}
+          {hasOverrides ? 'Tap here to reset tiles' : 'Tap to change tile colour — Hold to change all tiles'}
         </button>
       )}
     </div>

@@ -51,3 +51,16 @@ export interface DayResults {
   player_results: PlayerResult[]
   puzzle_winners: PuzzleWinner[]
 }
+
+export interface SavedWorkingEntry {
+  puzzle_setter_id: string
+  guesses_to_solve: number
+  tile_overrides: ('green' | 'orange' | 'grey' | null)[][]
+  saved_at: string
+}
+
+export interface SavedWorking {
+  date: string
+  guesser_id: string
+  entries: SavedWorkingEntry[]
+}

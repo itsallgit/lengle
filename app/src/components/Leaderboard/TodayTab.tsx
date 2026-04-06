@@ -196,17 +196,36 @@ export default function TodayTab() {
 
   const allPlayersCompleted = dailyTotals.every((d) => d.solved === 2)
 
+  // Compute most-points setter: sum guesses made on each player's word
+  const pointsPerSetter: Record<string, number> = {}
+  for (const puzzle of puzzleStats) {
+    pointsPerSetter[puzzle.setterId] = Object.values(puzzle.guessCounts)
+      .filter((c): c is number => c !== null)
+      .reduce((sum, c) => sum + c, 0)
+  }
+  const maxPoints = Math.max(...CONFIG.players.map((p) => pointsPerSetter[p.id] ?? 0))
+  const mostPointsEntry = CONFIG.players.find((p) => (pointsPerSetter[p.id] ?? 0) === maxPoints) ?? CONFIG.players[0]
+  const fewestGuessesEntry = CONFIG.players.find((p) => p.id === finalisedWinnerIds[0]) ?? CONFIG.players[0]
+
   return (
     <div className="space-y-6">
-      {/* Daily winner banner — only when ALL players have completed ALL puzzles */}
+      {/* Leaders section — shown when all players have completed; else show waiting message */}
       {allPlayersCompleted && finalisedWinnerIds.length > 0 ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-sm font-bold text-amber-900">
-            🏆{' '}
-            {finalisedWinnerIds.length === 1
-              ? `${getPlayerDisplay(finalisedWinnerIds[0])} wins today!`
-              : `Joint winners: ${finalisedWinnerIds.map(getPlayerDisplay).join(' & ')}`}
-          </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col items-center text-center">
+            <span className="text-5xl leading-none">
+              {playerEmojis[fewestGuessesEntry.id] ?? fewestGuessesEntry.defaultEmoji}
+            </span>
+            <p className="mt-2 text-s font-semibold text-gray-700">{fewestGuessesEntry.name}</p>
+            <p className="text-xs text-gray-500">Fewest Guesses</p>
+          </div>
+          <div className="flex flex-col items-center text-center">
+            <span className="text-5xl leading-none">
+              {playerEmojis[mostPointsEntry.id] ?? mostPointsEntry.defaultEmoji}
+            </span>
+            <p className="mt-2 text-s font-semibold text-gray-700">{mostPointsEntry.name}</p>
+            <p className="text-xs text-gray-500">Most Points</p>
+          </div>
         </div>
       ) : (
         <p className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
@@ -214,40 +233,60 @@ export default function TodayTab() {
         </p>
       )}
 
-      {/* Daily Scores table — moved to top */}
+      {/* Daily Scores table */}
       <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-bold text-gray-900">Daily Scores</h2>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
               <th className="pb-1 font-medium">Player</th>
-              <th className="pb-1 text-right font-medium">Total</th>
-              <th className="pb-1 text-right font-medium"></th>
+              <th className="pb-1 text-center font-medium text-gray-500">Guesses</th>
+              <th className="pb-1 text-center font-medium text-gray-500">Points</th>
             </tr>
           </thead>
           <tbody>
-            {dailyTotals.map((row) => {
-              const isWinner = finalisedWinnerIds.includes(row.playerId)
-              const allSolved = row.solved === 2
+            {[...dailyTotals].sort((a, b) => {
+              const aComplete = a.solved === (CONFIG.players.length - 1)
+              const bComplete = b.solved === (CONFIG.players.length - 1)
+              if (aComplete && !bComplete) return -1
+              if (!aComplete && bComplete) return 1
+              return a.total - b.total
+            }).map((row) => {
+              const isGuessesWinner = finalisedWinnerIds.includes(row.playerId)
+              const isPointsWinner = allPlayersCompleted && row.playerId === mostPointsEntry.id
+              const allSolved = row.solved === (CONFIG.players.length - 1)
               return (
                 <tr
                   key={row.playerId}
-                  className={`border-b border-gray-100 ${isWinner ? 'bg-amber-50' : ''}`}
+                  className={`border-b border-gray-100 ${isGuessesWinner && allPlayersCompleted ? 'bg-amber-50' : ''}`}
                 >
                   <td className="py-2 font-medium text-gray-900">
                     {row.playerDisplay}
                   </td>
-                  <td className="py-2 text-right font-bold text-gray-900">
-                    {allSolved ? row.total : <GreyQuestionTile />}
+                  <td className="py-2 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      {allSolved
+                        ? <span className="text-base font-bold text-gray-900">{row.total}</span>
+                        : <GreyQuestionTile />}
+                      {isGuessesWinner && allPlayersCompleted && <span>🏆</span>}
+                    </div>
                   </td>
-                  <td className="py-2 text-right">
-                    {isWinner && <span>🏆</span>}
+                  <td className="py-2 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-base font-bold text-gray-900">{pointsPerSetter[row.playerId] ?? 0}</span>
+                      {isPointsWinner && <span>🏆</span>}
+                    </div>
                   </td>
                 </tr>
               )
             })}
           </tbody>
         </table>
+        <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs text-gray-500">
+          <span className="font-semibold text-gray-700">Guesses:</span>
+          <span>Total guesses you made to solve everyone else&apos;s words (lower is better).</span>
+          <span className="font-semibold text-gray-700">Points:</span>
+          <span>Total guesses others made on your words. Your words were harder to crack (higher is better).</span>
+        </div>
       </div>
 
       {/* Per-puzzle sections */}

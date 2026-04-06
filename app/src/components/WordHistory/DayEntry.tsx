@@ -109,7 +109,7 @@ export default function WordHistoryDay({ date, dayData }: WordHistoryDayProps) {
                   <tbody>
                     {/* Row 1: setter name + word tiles */}
                     <tr>
-                      <td className="w-28 py-2 align-middle text-sm font-semibold text-gray-700">
+                      <td className="w-36 py-2 align-middle text-sm font-semibold text-gray-700">
                         {getPlayerDisplay(player.id)}
                       </td>
                       <td className="py-2 align-middle">
@@ -129,7 +129,7 @@ export default function WordHistoryDay({ date, dayData }: WordHistoryDayProps) {
                         )
                         return (
                           <tr key={guesser.id} className="border-t border-gray-50">
-                            <td className="w-28 py-1.5 font-medium text-gray-700">
+                            <td className="w-36 py-1.5 font-medium text-gray-700">
                               {getPlayerDisplay(guesser.id)}
                             </td>
                             <td className="py-1.5 text-gray-600">

@@ -30,11 +30,13 @@ export default function WordHistory() {
       const dayKeys = await listS3Keys('data/days/')
       const dateSet = new Set<string>()
       for (const key of dayKeys) {
-        const match = key.match(/data\/days\/(\d{4}-\d{2}-\d{2})\//)
-        if (match && match[1] < activePuzzleDate) {
+        const match = key.match(/data\/days\/(\d{4}-\d{2}-\d{2})\/guesses-/)
+        if (match && match[1] <= activePuzzleDate) {
           dateSet.add(match[1])
         }
       }
+      // Always include today even if no guesses have been submitted yet
+      dateSet.add(activePuzzleDate)
 
       const dates = Array.from(dateSet).sort().reverse()
       setPastDates(dates)
@@ -118,7 +120,7 @@ export default function WordHistory() {
         {loading && <p className="text-sm text-gray-500">Loading…</p>}
 
         {!loading && pastDates.length === 0 && (
-          <p className="text-sm text-gray-500">No past puzzle days yet.</p>
+          <p className="text-sm text-gray-500">No puzzle days yet.</p>
         )}
 
         {pastDates.map((date) => (

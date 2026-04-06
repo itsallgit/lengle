@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { CONFIG } from '../../lib/config'
 import type { TileOverride } from './tileOverride'
 import { TILE_CYCLE } from './tileOverride'
@@ -15,6 +16,8 @@ interface GuessRowProps {
   perLetterScores: number[]
   overrides: (TileOverride | null)[]
   onOverrideChange: (tileIndex: number, value: TileOverride | null) => void
+  onSetAllLetterToColor?: (letter: string, color: TileOverride | null) => void
+  disabled?: boolean
 }
 
 export default function GuessRow({
@@ -24,10 +27,42 @@ export default function GuessRow({
   perLetterScores,
   overrides,
   onOverrideChange,
+  onSetAllLetterToColor,
+  disabled,
 }: GuessRowProps) {
   const isCorrect = total === 0
   const tileBase =
-    'flex flex-1 aspect-square items-center justify-center rounded-lg text-lg font-bold text-white animate-tile-pop'
+    'flex flex-1 aspect-square items-center justify-center rounded-lg text-lg font-bold text-white animate-tile-pop select-none'
+
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressedRef = useRef(false)
+
+  function startLongPress(letter: string, tileIndex: number) {
+    const color = overrides[tileIndex]
+    longPressedRef.current = false
+    timerRef.current = setTimeout(() => {
+      longPressedRef.current = true
+      onSetAllLetterToColor?.(letter, color)
+      timerRef.current = null
+    }, 500)
+  }
+
+  function cancelLongPress() {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+  }
+
+  function handlePointerUp(i: number) {
+    if (timerRef.current) {
+      cancelLongPress()
+      if (!longPressedRef.current) {
+        cycleColor(i)
+      }
+    }
+    longPressedRef.current = false
+  }
 
   function cycleColor(i: number) {
     const current = TILE_CYCLE.indexOf(overrides[i])
@@ -54,9 +89,13 @@ export default function GuessRow({
           return (
             <div
               key={i}
-              className={`${tileBase} ${tileColorClass}${!isCorrect ? ' cursor-pointer' : ''}`}
+              className={`${tileBase} ${tileColorClass}${!isCorrect && !disabled ? ' cursor-pointer' : ''}`}
               style={{ animationDelay: `${i * 80}ms` }}
-              onClick={isCorrect ? undefined : () => cycleColor(i)}
+              onPointerDown={!isCorrect && !disabled ? () => startLongPress(letter, i) : undefined}
+              onPointerUp={!isCorrect && !disabled ? () => handlePointerUp(i) : undefined}
+              onPointerLeave={!isCorrect && !disabled ? cancelLongPress : undefined}
+              onPointerCancel={!isCorrect && !disabled ? cancelLongPress : undefined}
+              onContextMenu={(e) => e.preventDefault()}
               title={!isCorrect ? 'Click to annotate' : undefined}
             >
               {letter}

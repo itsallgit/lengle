@@ -3,9 +3,10 @@ import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
 import { readJson, writeToS3 } from '../../lib/s3'
 import { scoreGuess } from '../../lib/scoring'
-import type { GuessEntry, PlayerGuesses, PuzzleWord } from '../../types'
+import type { GuessEntry, PlayerGuesses, PuzzleWord, SavedWorking, SavedWorkingEntry } from '../../types'
 import GuessInput from './GuessInput'
 import GuessList from './GuessList'
+import type { TileOverride } from './tileOverride'
 
 interface PuzzlePanelProps {
   setterId: string
@@ -26,6 +27,7 @@ export default function PuzzlePanel({
   const [targetWord, setTargetWord] = useState<string | null>(null)
   /** Current player's guesses on this puzzle, filtered to setterId. */
   const [myGuesses, setMyGuesses] = useState<GuessEntry[]>([])
+  const [savedOverrides, setSavedOverrides] = useState<(TileOverride | null)[][] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expanded, setExpanded] = useState(true)
@@ -43,11 +45,12 @@ export default function PuzzlePanel({
     async function loadAll() {
       setIsLoading(true)
 
-      const [targetFile, myGuessFile] = await Promise.all([
+      const [targetFile, myGuessFile, savedWorkingFile] = await Promise.all([
         readJson<PuzzleWord>(`data/words/${date}/${setterId}.json`),
         readJson<PlayerGuesses>(
           `data/days/${date}/guesses-${currentPlayerId}.json`,
         ),
+        readJson<SavedWorking>(`data/days/${date}/saved-working-${currentPlayerId}.json`),
       ])
 
       if (cancelled) return
@@ -57,6 +60,13 @@ export default function PuzzlePanel({
         (myGuessFile?.guesses ?? []).filter((g) => g.puzzle_setter_id === setterId),
       )
 
+      const savedEntry = savedWorkingFile?.entries.find(
+        (e) => e.puzzle_setter_id === setterId,
+      )
+      if (savedEntry) {
+        setSavedOverrides(savedEntry.tile_overrides as (TileOverride | null)[][])
+      }
+
       setIsLoading(false)
     }
 
@@ -65,6 +75,28 @@ export default function PuzzlePanel({
       cancelled = true
     }
   }, [date, setterId, currentPlayerId])
+
+  async function handleSolveSnapshot(
+    overrides: (TileOverride | null)[][],
+    guessCount: number,
+  ) {
+    const workingKey = `data/days/${date}/saved-working-${currentPlayerId}.json`
+    const existingFile = await readJson<SavedWorking>(workingKey)
+    if (existingFile?.entries.some((e) => e.puzzle_setter_id === setterId)) return
+
+    const newEntry: SavedWorkingEntry = {
+      puzzle_setter_id: setterId,
+      guesses_to_solve: guessCount,
+      tile_overrides: overrides,
+      saved_at: new Date().toISOString(),
+    }
+    const updatedFile: SavedWorking = {
+      date,
+      guesser_id: currentPlayerId,
+      entries: [...(existingFile?.entries ?? []), newEntry],
+    }
+    await writeToS3(workingKey, updatedFile)
+  }
 
   async function handleGuessSubmit(word: string) {
     if (!targetWord || isSubmitting) return
@@ -153,7 +185,11 @@ export default function PuzzlePanel({
           {isSolved && targetWord && (
             <p className="mb-3 font-mono tracking-widest text-green-600 text-lg">{targetWord}</p>
           )}
-          <GuessList guesses={myGuesses} />
+          <GuessList
+            guesses={myGuesses}
+            initialOverrides={savedOverrides ?? undefined}
+            onSolveSnapshot={handleSolveSnapshot}
+          />
 
           <div className="mt-4">
             {isSolved ? (

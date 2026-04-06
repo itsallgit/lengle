@@ -39,6 +39,7 @@ Plan documents live at `plans/release-vX.Y.md`. One per release.
 - Player names, IDs, and default emojis are defined only in `CONFIG.players` in `app/src/lib/config.ts`
 - Player ID and emoji map are shared app-wide via `PlayerContext` in `app/src/App.tsx` — never prop-drill them
 - TypeScript strict mode is on — no `any` types
+- Always bump the `version` field in `app/package.json` to match the release version (e.g. `"1.9.0"` for release `v1.9`) — this value is injected by Vite as `__APP_VERSION__` and displayed on the home screen
 
 ## Key files
 - `specs/spec-game-design.md` — all game rules and acceptance criteria (source of truth for behaviour)

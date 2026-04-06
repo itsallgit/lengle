@@ -29,11 +29,11 @@ export default function PlayerStatusList({
           <tr className="border-b border-gray-200 bg-gray-50">
             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Player</th>
             <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">
-              <div>TODAY</div>
+              <div>Today</div>
               <div className="font-normal text-gray-400">{formatShort(todayDate)}</div>
             </th>
             <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">
-              <div>TOMORROW</div>
+              <div>Tomorrow</div>
               <div className="font-normal text-gray-400">{formatShort(tomorrowDate)}</div>
             </th>
           </tr>

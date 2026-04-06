@@ -103,7 +103,14 @@ Note: this is a long-running process. The user should test the app, then stop th
 
 ### B3 — Deploy to production
 
-Pre-deploy checks first:
+Before anything else, offer to back up live data:
+
+> "Before deploying to production, would you like to back up live game data first? (recommended) (yes / no)"
+
+- If **yes**: run Routine D1 inline (check `BUCKET_NAME`, run backup script, commit to git), then continue.
+- If **no**: proceed.
+
+Pre-deploy checks:
 1. Confirm `app/.env.local` exists: `Test-Path app/.env.local`
 2. Confirm `BUCKET_NAME` is set: `echo $BUCKET_NAME`
 3. Run `cd app && npm run typecheck && npm run lint` — must pass before deploying
@@ -277,6 +284,7 @@ Triggered when the user asks to back up data, restore data, clear data, or reset
 ## Constraints
 
 - **NEVER** implement code changes — only coordinate, plan, deploy, and manage git
+- **ALWAYS** offer to back up live data before any action that modifies the production environment (deploy, data restore, data clear)
 - **ALWAYS** run typecheck + lint before closing a release; abort if they fail
 - **ALWAYS** confirm with the user before committing, pushing, or merging to `main`
 - **NEVER** use patch versions — release versions are `vX.Y` only

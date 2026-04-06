@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import Header from '../shared/Header'
 import TodayTab from './TodayTab'
 import AllTimeTab from './AllTimeTab'
@@ -6,7 +7,9 @@ import AllTimeTab from './AllTimeTab'
 type Tab = 'today' | 'alltime'
 
 export default function Leaderboard() {
-  const [activeTab, setActiveTab] = useState<Tab>('today')
+  const location = useLocation()
+  const initialTab = (location.state as { tab?: Tab } | null)?.tab ?? 'today'
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab)
 
   return (
     <div className="min-h-screen bg-gray-50">

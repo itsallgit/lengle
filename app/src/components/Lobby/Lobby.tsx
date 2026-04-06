@@ -339,6 +339,30 @@ export default function Lobby() {
           </section>
         )}
 
+        {/* CTA 4 — View Scores */}
+        {!loading && (
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-center space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">View Scores</h2>
+              <p className="mt-1 text-xs text-gray-500">Today&apos;s leaderboard &amp; all-time stats</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate('/leaderboard', { state: { tab: 'today' } })}
+                className="flex-1 rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-800"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => navigate('/leaderboard', { state: { tab: 'alltime' } })}
+                className="flex-1 rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-800"
+              >
+                All Time
+              </button>
+            </div>
+          </section>
+        )}
+
         {/* Version number */}
         {!loading && (
           <p className="text-center text-xs text-gray-400">v{__APP_VERSION__}</p>

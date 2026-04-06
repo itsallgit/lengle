@@ -19,7 +19,7 @@ function extractPastDates(keys: string[], activePuzzleDate: string): string[] {
     const match = key.match(/data\/days\/(\d{4}-\d{2}-\d{2})\//)
     if (match) {
       const d = match[1]
-      if (d < activePuzzleDate) dateSet.add(d)
+      if (d <= activePuzzleDate) dateSet.add(d)
     }
   }
   return Array.from(dateSet).sort()
@@ -134,6 +134,11 @@ export default function AllTimeTab() {
     (a, b) => stats.guesserScore[a.id] - stats.guesserScore[b.id],
   )
 
+  const leastGuessesPlayer = sortedPlayers[0]
+  const maxPoints = Math.max(...CONFIG.players.map((p) => stats.wordSetterScore[p.id]))
+  const mostPointsPlayer =
+    CONFIG.players.find((p) => stats.wordSetterScore[p.id] === maxPoints) ?? CONFIG.players[0]
+
   return (
     <div className="space-y-8">
       {/* Hero stat: completed days */}
@@ -146,67 +151,65 @@ export default function AllTimeTab() {
         </p>
       </div>
 
-      {/* Overall leaderboard */}
+      {/* Leaders section */}
+      {stats.completedDayCount > 0 && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col items-center text-center">
+            <span className="text-5xl leading-none">
+              {playerEmojis[leastGuessesPlayer.id] ?? leastGuessesPlayer.defaultEmoji}
+            </span>
+            <p className="mt-2 text-s font-semibold text-gray-700">{leastGuessesPlayer.name}</p>
+            <p className="text-xs text-gray-500">Fewest Guesses</p>
+          </div>
+          <div className="flex flex-col items-center text-center">
+            <span className="text-5xl leading-none">
+              {playerEmojis[mostPointsPlayer.id] ?? mostPointsPlayer.defaultEmoji}
+            </span>
+            <p className="mt-2 text-s font-semibold text-gray-700">{mostPointsPlayer.name}</p>
+            <p className="text-xs text-gray-500">Most Points</p>
+          </div>
+        </div>
+      )}
+
+      {/* Merged Guesses + Points table */}
       <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-bold text-gray-900">Total Scores</h2>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
               <th className="pb-1 font-medium">Player</th>
-              <th className="pb-1 text-right font-medium">Score</th>
-              <th className="pb-1 text-right font-medium"></th>
+              <th className="pb-1 text-center font-medium text-gray-500">Guesses</th>
+              <th className="pb-1 text-center font-medium text-gray-500">Points</th>
             </tr>
           </thead>
           <tbody>
             {sortedPlayers.map((player) => {
               const isWinner = stats.overallWinnerIds.includes(player.id)
               return (
-                <tr
-                  key={player.id}
-                  className={`border-b border-gray-100 ${isWinner && stats.completedDayCount > 0 ? 'bg-amber-50' : ''}`}
-                >
-                  <td className="py-2 font-medium text-gray-900">
-                    {getPlayerDisplay(player.id)}
+                <tr key={player.id} className={`border-b border-gray-100 ${isWinner && stats.completedDayCount > 0 ? 'bg-amber-50' : ''}`}>
+                  <td className="py-2 font-medium text-gray-900">{getPlayerDisplay(player.id)}</td>
+                  <td className="py-2 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-base font-bold text-gray-900">{stats.guesserScore[player.id]}</span>
+                      {isWinner && stats.completedDayCount > 0 && <span>🏆</span>}
+                    </div>
                   </td>
-                  <td className="py-2 text-right font-bold text-gray-900">
-                    {stats.guesserScore[player.id]}
-                  </td>
-                  <td className="py-2 text-right">
-                    {isWinner && stats.completedDayCount > 0 && <span>🏆</span>}
+                  <td className="py-2 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-base font-bold text-gray-900">{stats.wordSetterScore[player.id]}</span>
+                      {player.id === mostPointsPlayer.id && stats.completedDayCount > 0 && <span>🏆</span>}
+                    </div>
                   </td>
                 </tr>
               )
             })}
           </tbody>
         </table>
-        <p className="mt-2 text-xs text-gray-400">Lowest score wins.</p>
-      </div>
-
-      {/* Per-player stats — single table with orange/green column headers */}
-      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr>
-              <th className="pb-1 text-left font-medium text-gray-700">Player</th>
-              <th className="pb-1 text-center font-medium text-orange-500">Guesses to Solve</th>
-              <th className="pb-1 text-center font-medium text-green-600">Guesses from Others</th>
-            </tr>
-            <tr className="text-xs text-gray-400">
-              <th></th>
-              <th className="pb-2 text-center">(lower is better)</th>
-              <th className="pb-2 text-center">(higher is better)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {CONFIG.players.map((player) => (
-              <tr key={player.id} className="border-t border-gray-100">
-                <td className="py-2 font-medium text-gray-900">{getPlayerDisplay(player.id)}</td>
-                <td className="py-2 text-center font-bold text-gray-900">{stats.guesserScore[player.id]}</td>
-                <td className="py-2 text-center font-bold text-gray-900">{stats.wordSetterScore[player.id]}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs text-gray-500">
+          <span className="font-semibold text-gray-700">Guesses:</span>
+          <span>Total guesses you made to solve everyone else&apos;s words (lower is better).</span>
+          <span className="font-semibold text-gray-700">Points:</span>
+          <span>Total guesses others made on your words. Your words were harder to crack (higher is better).</span>
+        </div>
       </div>
     </div>
   )
