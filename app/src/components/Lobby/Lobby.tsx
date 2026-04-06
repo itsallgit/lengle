@@ -282,43 +282,32 @@ export default function Lobby() {
         )}
 
         {/* CTA 2 — Play Today's Puzzles */}
-        {!loading && lobbyState === 'C' && (
+        {!loading && lobbyState !== 'A' && (
           <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-center space-y-4">
             <div>
               <h2 className="text-base font-bold text-gray-900">Today's Puzzles</h2>
-              <p className="mt-1 text-xs text-gray-500">All words are set — let's play!</p>
+              {lobbyState === 'C' ? (
+                <p className="mt-1 text-xs text-gray-500">All words are set — let's play!</p>
+              ) : (
+                <p className="mt-1 text-xs text-gray-500">
+                  Waiting for{' '}
+                  {pendingPlayers.map((p, i) => (
+                    <span key={p.id}>
+                      <span className="font-semibold">
+                        {CONFIG.players.find(cp => cp.id === p.id)?.name}
+                      </span>
+                      {i < pendingPlayers.length - 1 ? ' and ' : ''}
+                    </span>
+                  ))}{' '}
+                  to set their word…
+                </p>
+              )}
             </div>
             <button
               onClick={() => navigate('/play')}
               className="w-full rounded-xl bg-violet-700 px-6 py-3 text-sm font-semibold text-white hover:bg-violet-800"
             >
               Play Today's Puzzles
-            </button>
-          </section>
-        )}
-
-        {!loading && lobbyState === 'B' && (
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-center space-y-4">
-            <div>
-              <h2 className="text-base font-bold text-gray-900">Today's Puzzles</h2>
-              <p className="mt-1 text-xs text-gray-500">
-                Waiting for{' '}
-                {pendingPlayers.map((p, i) => (
-                  <span key={p.id}>
-                    <span className="font-semibold">
-                      {CONFIG.players.find(cp => cp.id === p.id)?.name}
-                    </span>
-                    {i < pendingPlayers.length - 1 ? ' and ' : ''}
-                  </span>
-                ))}{' '}
-                to set {pendingPlayers.length === 1 ? 'their' : 'their'} word…
-              </p>
-            </div>
-            <button
-              disabled
-              className="w-full rounded-xl bg-gray-200 px-6 py-3 text-sm font-semibold text-gray-400 cursor-not-allowed"
-            >
-              Waiting for others…
             </button>
           </section>
         )}

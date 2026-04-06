@@ -35,7 +35,10 @@ export default function GuessList({ guesses, initialOverrides, onSolveSnapshot }
   useEffect(() => {
     if (isSolved && !wasSolvedRef.current) {
       wasSolvedRef.current = true
-      onSolveSnapshot?.(overrides, guesses.length)
+      const paddedOverrides = guesses.map((g, i) =>
+        overrides[i] ?? Array(g.word.length).fill(null),
+      )
+      onSolveSnapshot?.(paddedOverrides, guesses.length)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSolved])

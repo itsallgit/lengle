@@ -23,11 +23,11 @@ function formatDate(dateStr: string): string {
 function WordTiles({ word, finished }: { word: string | null; finished: boolean }) {
   if (finished && word) {
     return (
-      <div className="flex gap-1.5">
+      <div className="flex gap-1">
         {word.split('').map((letter, i) => (
           <div
             key={i}
-            className="flex h-11 w-11 items-center justify-center rounded-md bg-green-500 text-base font-bold text-white"
+            className="flex flex-1 min-w-0 aspect-square max-w-[2.75rem] items-center justify-center rounded-md bg-green-500 text-sm font-bold text-white"
           >
             {letter}
           </div>
@@ -36,11 +36,11 @@ function WordTiles({ word, finished }: { word: string | null; finished: boolean 
     )
   }
   return (
-    <div className="flex gap-1.5">
+    <div className="flex gap-1">
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
-          className="flex h-11 w-11 items-center justify-center rounded-md bg-gray-500 text-base font-bold text-white"
+          className="flex flex-1 min-w-0 aspect-square max-w-[2.75rem] items-center justify-center rounded-md bg-gray-500 text-sm font-bold text-white"
         >
           ?
         </div>
@@ -109,7 +109,7 @@ export default function WordHistoryDay({ date, dayData }: WordHistoryDayProps) {
                   <tbody>
                     {/* Row 1: setter name + word tiles */}
                     <tr>
-                      <td className="w-36 py-2 align-middle text-sm font-semibold text-gray-700">
+                      <td className="w-px whitespace-nowrap pr-4 py-2 align-middle text-sm font-semibold text-gray-700">
                         {getPlayerDisplay(player.id)}
                       </td>
                       <td className="py-2 align-middle">
@@ -129,7 +129,7 @@ export default function WordHistoryDay({ date, dayData }: WordHistoryDayProps) {
                         )
                         return (
                           <tr key={guesser.id} className="border-t border-gray-50">
-                            <td className="w-36 py-1.5 font-medium text-gray-700">
+                            <td className="w-px whitespace-nowrap pr-4 py-1.5 font-medium text-gray-700">
                               {getPlayerDisplay(guesser.id)}
                             </td>
                             <td className="py-1.5 text-gray-600">
