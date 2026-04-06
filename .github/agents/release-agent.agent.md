@@ -140,7 +140,16 @@ Triggered when the user says the release is done, wants to commit, or wants to m
 
 The user has already asked to close the release — do not ask them to confirm this intent again. Proceed directly to C2.
 
-### C2 — Run final checks
+### C2 — Offer to back up live data
+
+Before making any changes, offer to back up the current live game data:
+
+> "Before closing this release, would you like to back up live game data first? (recommended) (yes / no)"
+
+- If **yes**: run Routine D1 inline (check `BUCKET_NAME`, run backup script, commit backup to git), then continue.
+- If **no**: proceed.
+
+### C3 — Run final checks
 
 ```
 cd app && npm run typecheck && npm run lint
@@ -148,7 +157,7 @@ cd app && npm run typecheck && npm run lint
 
 **Abort if there are any errors.** Tell the user to fix them in Agent mode and come back.
 
-### C3 — Build the commit message
+### C4 — Build the commit message
 
 Read `plans/release-{version}.md` and derive the commit message entirely from the plan — do **not** ask the user for a summary. Use the **Summary** field (first sentence or two) as the one-liner, and the **Changes included** bullet list for the body. The standard commit message format is:
 
@@ -162,11 +171,11 @@ Read `plans/release-{version}.md` and derive the commit message entirely from th
 
 Show the full proposed commit message to the user and ask them to confirm before proceeding. Do not ask them to supply or edit any text — only confirm.
 
-### C4 — Update plan status to Done
+### C5 — Update plan status to Done
 
 Before committing, update `plans/release-{version}.md`: change `Status | In Progress` to `Status | Done`. This ensures the status change is included in the release commit rather than left as an uncommitted file.
 
-### C5 — Commit on the release branch
+### C6 — Commit on the release branch
 
 ```
 git add -A
@@ -177,13 +186,13 @@ git commit -m "{version}: {summary}
 ..."
 ```
 
-### C6 — Push the release branch
+### C7 — Push the release branch
 
 ```
 git push -u origin release/{version}
 ```
 
-### C7 — Squash merge into main
+### C8 — Squash merge into main
 
 ```
 git checkout main
@@ -197,10 +206,24 @@ git commit -m "{version}: {summary}
 git push origin main
 ```
 
-### C9 — Report
+### C9 — Deploy to production
+
+Pre-deploy checks:
+1. Confirm `app/.env.local` exists: `Test-Path app/.env.local`
+2. Confirm `BUCKET_NAME` is set: `echo $BUCKET_NAME`
+
+If checks pass:
+```
+bash scripts/deploy.sh
+```
+
+Report the live URL from `cdk-outputs.json` (`WebsiteUrl` key) and confirm the script exited with code 0. If the deploy fails, tell the user and stop — do not attempt to fix it automatically.
+
+### C10 — Report
 
 Tell the user:
-- Release {version} is closed and merged to `main`
+- Release {version} is closed, merged to `main`, and deployed to production
+- The live URL from `cdk-outputs.json`
 - Your workspace is now on `main`. The release branch `release/{version}` is preserved for reference.
 - Ask if they want to start a new release
 
