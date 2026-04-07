@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { CONFIG } from '../../lib/config'
 import { scoreGuess } from '../../lib/scoring'
 import WORD_LIST from '../../words/wordlist'
 import type { GuessEntry } from '../../types'
 import Header from '../shared/Header'
 import GuessList from './GuessList'
 import GuessInput from './GuessInput'
+import OnScreenKeyboard from './OnScreenKeyboard'
+import type { TileOverride } from './tileOverride'
 
 function pickRandomWord(): string {
   const words = Array.from(WORD_LIST)
@@ -14,6 +17,8 @@ function pickRandomWord(): string {
 export default function PracticeView() {
   const [targetWord, setTargetWord] = useState<string>(() => pickRandomWord())
   const [guesses, setGuesses] = useState<GuessEntry[]>([])
+  const [inputValue, setInputValue] = useState('')
+  const [currentOverrides, setCurrentOverrides] = useState<(TileOverride | null)[][]>([])
 
   function handleGuessSubmit(word: string) {
     const result = scoreGuess(word, targetWord)
@@ -27,11 +32,14 @@ export default function PracticeView() {
       submitted_at: new Date().toISOString(),
     }
     setGuesses(prev => [...prev, newEntry])
+    setInputValue('')
   }
 
   function handleNewWord() {
     setTargetWord(pickRandomWord())
     setGuesses([])
+    setInputValue('')
+    setCurrentOverrides([])
   }
 
   const isSolved = guesses.some(g => g.is_correct)
@@ -45,31 +53,43 @@ export default function PracticeView() {
         </p>
 
         {isSolved && (
-          <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-2">
+          <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-3">
             <p className="text-sm font-medium text-green-800">
               Solved in {guesses.length} {guesses.length === 1 ? 'guess' : 'guesses'}! 🎉
-            </p>
-            <p className="font-mono text-lg font-bold tracking-widest text-green-700">
-              {targetWord}
             </p>
             <button
               type="button"
               onClick={handleNewWord}
-              className="mt-1 rounded-xl bg-violet-700 px-5 py-2 text-sm font-semibold text-white hover:bg-violet-800"
+              className="w-full rounded-xl bg-violet-700 px-6 py-3 text-sm font-semibold text-white hover:bg-violet-800"
             >
               Play Again
             </button>
           </div>
         )}
 
-        <GuessList guesses={guesses} />
+        <GuessList guesses={guesses} onOverridesChange={setCurrentOverrides} />
 
         {!isSolved && (
-          <GuessInput
-            onSubmit={handleGuessSubmit}
-            disabled={false}
-            ownWord={null}
-          />
+          <>
+            <GuessInput
+              value={inputValue}
+              onValueChange={setInputValue}
+              onSubmit={handleGuessSubmit}
+              disabled={false}
+              ownWord={null}
+            />
+            <OnScreenKeyboard
+              onLetterPress={(letter) =>
+                setInputValue((prev) =>
+                  prev.length >= CONFIG.wordLength ? prev : prev + letter
+                )
+              }
+              onBackspace={() => setInputValue((prev) => prev.slice(0, -1))}
+              disabled={false}
+              guesses={guesses}
+              overrides={currentOverrides}
+            />
+          </>
         )}
       </main>
     </div>

@@ -190,7 +190,7 @@ export default function Lobby() {
   const currentEmoji = playerEmojis[playerId] ?? currentPlayerConfig?.defaultEmoji ?? '🎯'
 
   const pendingPlayers = CONFIG.players.filter(
-    p => p.id !== playerId && status?.words_set[p.id] !== true,
+    p => p.id !== playerId && todaySetByPlayer[p.id] !== true,
   )
 
   const bothWordsSet = playerHasSetToday && tomorrowWord !== null
@@ -201,19 +201,17 @@ export default function Lobby() {
       <main className="mx-auto max-w-lg space-y-6 px-4 py-8">
 
         {/* Greeting — emoji itself is the trigger for the picker */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            <button
-              type="button"
-              onClick={() => setShowEmojiPicker(v => !v)}
-              className="text-2xl rounded-lg p-0.5 hover:bg-gray-200 transition-colors"
-              aria-label="Change emoji"
-              title="Change your emoji"
-            >
-              {currentEmoji}
-            </button>
-            {' '}Hi, {currentPlayerName}!
-          </h1>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker(v => !v)}
+            className="text-5xl leading-none rounded-lg p-0.5 hover:bg-gray-200 transition-colors"
+            aria-label="Change emoji"
+            title="Change your emoji"
+          >
+            {currentEmoji}
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900">Hi, {currentPlayerName}!</h1>
         </div>
 
         {/* Emoji picker */}
@@ -286,7 +284,7 @@ export default function Lobby() {
           <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-center space-y-4">
             <div>
               <h2 className="text-base font-bold text-gray-900">Today's Puzzles</h2>
-              {lobbyState === 'C' ? (
+              {pendingPlayers.length === 0 ? (
                 <p className="mt-1 text-xs text-gray-500">All words are set — let's play!</p>
               ) : (
                 <p className="mt-1 text-xs text-gray-500">
@@ -354,7 +352,7 @@ export default function Lobby() {
 
         {/* Version number */}
         {!loading && (
-          <p className="text-center text-xs text-gray-400">v{__APP_VERSION__}</p>
+          <p className="text-center text-xs text-gray-400">v{__APP_VERSION__.split('.').slice(0, 2).join('.')}</p>
         )}
 
         {/* Player identity */}

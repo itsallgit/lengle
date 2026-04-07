@@ -6,6 +6,7 @@ import { scoreGuess } from '../../lib/scoring'
 import type { GuessEntry, PlayerGuesses, PuzzleWord, SavedWorking, SavedWorkingEntry } from '../../types'
 import GuessInput from './GuessInput'
 import GuessList from './GuessList'
+import OnScreenKeyboard from './OnScreenKeyboard'
 import type { TileOverride } from './tileOverride'
 
 interface PuzzlePanelProps {
@@ -31,6 +32,8 @@ export default function PuzzlePanel({
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expanded, setExpanded] = useState(true)
+  const [inputValue, setInputValue] = useState('')
+  const [currentOverrides, setCurrentOverrides] = useState<(TileOverride | null)[][]>([])
 
   const isSolved = myGuesses.some((g) => g.is_correct)
   const setterPlayer = CONFIG.players.find((p) => p.id === setterId)
@@ -135,6 +138,7 @@ export default function PuzzlePanel({
 
       // Optimistic update — show the guess immediately while the write is in-flight.
       setMyGuesses((prev) => [...prev, newEntry])
+      setInputValue('')
 
       await writeToS3(guessFileKey, updatedFile)
     } finally {
@@ -189,6 +193,7 @@ export default function PuzzlePanel({
             guesses={myGuesses}
             initialOverrides={savedOverrides ?? undefined}
             onSolveSnapshot={handleSolveSnapshot}
+            onOverridesChange={setCurrentOverrides}
           />
 
           <div className="mt-4">
@@ -201,11 +206,26 @@ export default function PuzzlePanel({
                 This puzzle word hasn’t been set yet.
               </p>
             ) : (
-              <GuessInput
-                onSubmit={handleGuessSubmit}
-                disabled={isSubmitting}
-                ownWord={ownWord}
-              />
+              <>
+                <GuessInput
+                  value={inputValue}
+                  onValueChange={setInputValue}
+                  onSubmit={handleGuessSubmit}
+                  disabled={isSubmitting}
+                  ownWord={ownWord}
+                />
+                <OnScreenKeyboard
+                  onLetterPress={(letter) =>
+                    setInputValue((prev) =>
+                      prev.length >= CONFIG.wordLength ? prev : prev + letter
+                    )
+                  }
+                  onBackspace={() => setInputValue((prev) => prev.slice(0, -1))}
+                  disabled={isSubmitting}
+                  guesses={myGuesses}
+                  overrides={currentOverrides}
+                />
+              </>
             )}
           </div>
         </div>

@@ -314,6 +314,41 @@ Two tabs: **Today**, **All Time** (Trends tab removed)
 
 ---
 
+## 10. On-Screen Keyboard
+
+- The **on-screen keyboard** is displayed below the guess input field on the puzzle screen and the practice screen
+- It consists of a standard QWERTY letter layout (3 rows) plus a ⌫ backspace key in the bottom-right corner
+- Tapping a letter key appends that letter to the current guess input, up to the 5-letter maximum
+- Tapping ⌫ removes the last letter from the current guess input
+- The native device keyboard remains usable at any time by tapping directly into the guess input field
+- The on-screen keyboard is only shown when the puzzle is **active** — i.e. the puzzle word has been set and the player has not yet solved it. It is hidden when the puzzle is solved, when the word has not yet been set, or while the puzzle is loading
+
+### 10.1 Key Colour Rules
+
+Each letter key reflects the player's current tile override annotations for that letter across all current guesses:
+
+| Condition | Key colour |
+|---|---|
+| No guesses contain that letter | Default (grey) |
+| All tiles for that letter are in the default state (no annotation) | Default (grey) |
+| All annotated tiles for that letter have the same colour (green / orange / grey), and at least one tile is still default | Default (grey) |
+| All tiles for that letter are annotated and all are the same colour | That colour (green / orange / grey) |
+| All tiles for that letter are annotated but they are not all the same colour | **Red** (conflict) |
+
+In other words: a key only turns a specific colour when **every** occurrence of that letter across all guesses has been annotated with the **same** colour. If any tile is still in the default state, the key stays default.
+
+### 10.2 Conflict Indicator
+
+- If any key is shown in red (conflicting annotations), a short explanatory note appears directly below the keyboard: *"Red key = conflicting tile colours for that letter"*
+- The note is only shown when at least one key is currently red; it hides when all conflicts are resolved
+
+### 10.3 Practice Mode
+
+- The on-screen keyboard is also shown in practice mode
+- Practice mode does not support tile annotation, so all keys remain in the default colour
+
+---
+
 ## 11. Player Emoji
 
 - Each player can select a custom emoji to represent them throughout the app

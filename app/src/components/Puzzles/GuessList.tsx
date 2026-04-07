@@ -7,9 +7,10 @@ interface GuessListProps {
   guesses: GuessEntry[]
   initialOverrides?: (TileOverride | null)[][]
   onSolveSnapshot?: (overrides: (TileOverride | null)[][], guessCount: number) => void
+  onOverridesChange?: (overrides: (TileOverride | null)[][]) => void
 }
 
-export default function GuessList({ guesses, initialOverrides, onSolveSnapshot }: GuessListProps) {
+export default function GuessList({ guesses, initialOverrides, onSolveSnapshot, onOverridesChange }: GuessListProps) {
   const [overrides, setOverrides] = useState<(TileOverride | null)[][]>(() =>
     initialOverrides && initialOverrides.length === guesses.length
       ? initialOverrides
@@ -29,6 +30,11 @@ export default function GuessList({ guesses, initialOverrides, onSolveSnapshot }
     })
   }, [guesses.length, guesses])
 
+  useEffect(() => {
+    onOverridesChange?.(overrides)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Sync initial state to parent on mount
+
   const wasSolvedRef = useRef(false)
   const isSolved = guesses.some((g) => g.is_correct)
 
@@ -46,33 +52,49 @@ export default function GuessList({ guesses, initialOverrides, onSolveSnapshot }
   const hasOverrides = overrides.some((row) => row.some((v) => v !== null))
 
   function handleOverrideChange(rowIndex: number, tileIndex: number, value: TileOverride | null) {
-    setOverrides((prev) => {
-      const next = prev.map((row) => [...row])
-      next[rowIndex][tileIndex] = value
-      return next
-    })
+    const next = overrides.map((row) => [...row])
+    next[rowIndex][tileIndex] = value
+    setOverrides(next)
+    onOverridesChange?.(next)
   }
 
   function resetOverrides() {
-    setOverrides(guesses.map((g) => Array(g.word.length).fill(null)))
+    const next = guesses.map((g) => Array(g.word.length).fill(null))
+    setOverrides(next)
+    onOverridesChange?.(next)
   }
 
   function handleSetAllLetterToColor(letter: string, color: TileOverride | null) {
     const upperLetter = letter.toUpperCase()
-    setOverrides((prev) =>
-      prev.map((row, rowIndex) =>
-        row.map((override, tileIndex) => {
-          if (guesses[rowIndex]?.word[tileIndex]?.toUpperCase() === upperLetter) {
-            return color
-          }
-          return override
-        })
-      )
+    const next = overrides.map((row, rowIndex) =>
+      row.map((override, tileIndex) => {
+        if (guesses[rowIndex]?.word[tileIndex]?.toUpperCase() === upperLetter) {
+          return color
+        }
+        return override
+      })
     )
+    setOverrides(next)
+    onOverridesChange?.(next)
   }
 
   return (
     <div className="space-y-2">
+      {/* Reset Tiles — only shown after the first guess; hidden when solved; disabled when no overrides exist */}
+      {guesses.length > 0 && !isSolved && (
+        <button
+          type="button"
+          onClick={hasOverrides ? resetOverrides : undefined}
+          disabled={!hasOverrides}
+          className={
+            hasOverrides
+              ? 'mb-2 w-full rounded-lg border border-gray-300 bg-gray-200 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300'
+              : 'mb-2 w-full rounded-lg border border-gray-200 bg-gray-100 py-1.5 text-xs font-medium text-gray-400 cursor-default'
+          }
+        >
+          {hasOverrides ? 'Tap here to reset tiles' : 'Tap to change tile colour — Hold to change all tiles'}
+        </button>
+      )}
       {guesses.map((entry, index) => (
         <GuessRow
           key={`${entry.puzzle_setter_id}-${entry.guess_number}`}
@@ -88,21 +110,6 @@ export default function GuessList({ guesses, initialOverrides, onSolveSnapshot }
           disabled={isSolved}
         />
       ))}
-      {/* Reset Tiles — only shown after the first guess; hidden when solved; disabled when no overrides exist */}
-      {guesses.length > 0 && !isSolved && (
-        <button
-          type="button"
-          onClick={hasOverrides ? resetOverrides : undefined}
-          disabled={!hasOverrides}
-          className={
-            hasOverrides
-              ? 'mt-6 w-full rounded-lg border border-gray-300 bg-gray-200 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300'
-              : 'mt-6 w-full rounded-lg border border-gray-200 bg-gray-100 py-1.5 text-xs font-medium text-gray-400 cursor-default'
-          }
-        >
-          {hasOverrides ? 'Tap here to reset tiles' : 'Tap to change tile colour — Hold to change all tiles'}
-        </button>
-      )}
     </div>
   )
 }

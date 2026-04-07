@@ -477,10 +477,11 @@ src/components/
 │   ├── PuzzleView.tsx
 │   ├── PuzzlePanel.tsx
 │   ├── PracticeView.tsx         ← New in v1.7: client-side practice mode, route /practice
-│   ├── GuessList.tsx            ← Owns overrides state; shows Reset Tiles button
+│   ├── GuessList.tsx            ← Owns overrides state; shows Reset Tiles button; emits onOverridesChange
 │   ├── GuessRow.tsx             ← Accepts overrides/onOverrideChange props; per-letter dots
 │   ├── tileOverride.ts          ← TileOverride type and TILE_CYCLE constant
-│   ├── GuessInput.tsx
+│   ├── GuessInput.tsx           ← Controlled component: value + onValueChange props (v1.11)
+│   ├── OnScreenKeyboard.tsx     ← New in v1.11: QWERTY keyboard with colour-coded letter keys
 │   └── OthersPanel.tsx
 ├── Leaderboard/
 │   ├── Leaderboard.tsx
@@ -505,6 +506,18 @@ src/components/
 | `/history` | `WordHistory` | Protected |
 
 **Page title convention:** Pages do not render their own `<h1>` title element. The persistent `Header` shows the current page name as the centred label in the navbar. The Nav dropdown uses the same name for each route. The canonical name for each page is defined in `PAGE_LABELS` in `Header.tsx` (and mirrored in `NAV_LINKS` in `Nav.tsx`). This avoids redundant titles and keeps the UI clean on small screens.
+
+**`OnScreenKeyboard` component (v1.11):**
+- Props: `onLetterPress(letter)`, `onBackspace()`, `disabled`, `guesses: GuessEntry[]`, `overrides: (TileOverride | null)[][]`
+- Computes a `KeyColor` (`'default' | 'green' | 'orange' | 'grey' | 'red'`) for each letter via `computeKeyColor`, memoised on `guesses` and `overrides`
+- A key is coloured only when ALL tiles for that letter are annotated and agree; any default (null) tile keeps the key default; all-annotated but disagreeing tiles renders the key red
+- Red-key conflict note is rendered only when at least one key is red
+- Uses `onPointerDown` with `preventDefault()` to prevent the on-screen key press from stealing focus from the guess input field
+- Shown only when the puzzle is active (same condition as `GuessInput`)
+
+**`GuessInput` props (v1.11):** Now a controlled component. Receives `value: string` and `onValueChange: (v: string) => void` from the parent. Internal `useState` for value removed.
+
+**`GuessList` props (v1.11):** New optional `onOverridesChange?: (overrides: (TileOverride | null)[][]) => void` prop. Called via `useEffect` whenever overrides state changes, allowing parents (`PuzzlePanel`) to track live override state for keyboard key colouring.
 
 **Player context:** `PlayerContext` is defined in `App.tsx` and exported. It provides:
 - `playerId: string | null` — the currently selected player ID

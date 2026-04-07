@@ -3,13 +3,14 @@ import { CONFIG } from '../../lib/config'
 import WORD_LIST from '../../words/wordlist'
 
 interface GuessInputProps {
+  value: string
+  onValueChange: (v: string) => void
   onSubmit: (word: string) => void
   disabled: boolean
   ownWord: string | null
 }
 
-export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputProps) {
-  const [value, setValue] = useState('')
+export default function GuessInput({ value, onValueChange, onSubmit, disabled, ownWord }: GuessInputProps) {
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const prevDisabled = useRef(disabled)
@@ -22,7 +23,7 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const upper = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase()
-    setValue(upper.slice(0, CONFIG.wordLength))
+    onValueChange(upper.slice(0, CONFIG.wordLength))
     setError(null)
   }
 
@@ -41,7 +42,7 @@ export default function GuessInput({ onSubmit, disabled, ownWord }: GuessInputPr
     }
 
     onSubmit(word)
-    setValue('')
+    onValueChange('')
     setError(null)
     inputRef.current?.focus()
   }
