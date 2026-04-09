@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
 import { readJson, writeToS3 } from '../../lib/s3'
@@ -34,6 +34,8 @@ export default function PuzzlePanel({
   const [expanded, setExpanded] = useState(true)
   const [inputValue, setInputValue] = useState('')
   const [currentOverrides, setCurrentOverrides] = useState<(TileOverride | null)[][]>([])
+
+  const lastInputSourceRef = useRef<'native' | 'onscreen'>('native')
 
   const isSolved = myGuesses.some((g) => g.is_correct)
   const setterPlayer = CONFIG.players.find((p) => p.id === setterId)
@@ -99,6 +101,21 @@ export default function PuzzlePanel({
       entries: [...(existingFile?.entries ?? []), newEntry],
     }
     await writeToS3(workingKey, updatedFile)
+  }
+
+  function handleNativeInput(v: string) {
+    lastInputSourceRef.current = 'native'
+    setInputValue(v)
+  }
+
+  function handleOSKLetter(letter: string) {
+    lastInputSourceRef.current = 'onscreen'
+    setInputValue((prev) => (prev.length >= CONFIG.wordLength ? prev : prev + letter))
+  }
+
+  function handleOSKBackspace() {
+    lastInputSourceRef.current = 'onscreen'
+    setInputValue((prev) => prev.slice(0, -1))
   }
 
   async function handleGuessSubmit(word: string) {
@@ -209,18 +226,15 @@ export default function PuzzlePanel({
               <>
                 <GuessInput
                   value={inputValue}
-                  onValueChange={setInputValue}
+                  onValueChange={handleNativeInput}
                   onSubmit={handleGuessSubmit}
                   disabled={isSubmitting}
                   ownWord={ownWord}
+                  shouldFocusAfterSubmit={lastInputSourceRef.current === 'native'}
                 />
                 <OnScreenKeyboard
-                  onLetterPress={(letter) =>
-                    setInputValue((prev) =>
-                      prev.length >= CONFIG.wordLength ? prev : prev + letter
-                    )
-                  }
-                  onBackspace={() => setInputValue((prev) => prev.slice(0, -1))}
+                  onLetterPress={handleOSKLetter}
+                  onBackspace={handleOSKBackspace}
                   disabled={isSubmitting}
                   guesses={myGuesses}
                   overrides={currentOverrides}

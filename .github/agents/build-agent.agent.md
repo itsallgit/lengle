@@ -114,7 +114,12 @@ If there are errors:
 
 When all phases are done and the final typecheck + lint is clean:
 1. List every file that was created or modified
-2. Remind the user: "Return to `@release-agent` for final checks, deployment, and closing the release."
+2. Start or refresh the local dev server:
+   - Check if the Vite dev server is already running: `curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/`
+   - If it returns `200`, the server is already running — Vite hot-reloads automatically, no restart needed
+   - If it does not return `200`, start it: `cd app && npm run dev` (background process)
+   - Tell the user: "Local server is running at **http://localhost:5173/** — open it to test your changes."
+3. Remind the user: "Return to `@release-agent` for final checks, deployment, and closing the release."
 
 ---
 
@@ -123,6 +128,7 @@ When all phases are done and the final typecheck + lint is clean:
 - **NEVER** run `git commit`, `git push`, `git merge`, or `git checkout` — all git operations belong to `@release-agent`
 - **NEVER** skip the plan review (Routine A) — even if the user says "just build it"
 - **NEVER** move to the next phase while the current phase has typecheck or lint errors
+- **ALWAYS** follow button and component styles defined in `specs/spec-ux-design.md` — in particular, back/navigation buttons must use the §3.5 back button style (`rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50`), not plain text links
 - **NEVER** hardcode scoring values — always use `CONFIG.scoring` from `app/src/lib/config.ts`
 - **NEVER** import the AWS SDK directly in components or hooks
 - **NEVER** prop-drill player IDs or emojis — use `PlayerContext`

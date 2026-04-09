@@ -8,9 +8,10 @@ interface GuessInputProps {
   onSubmit: (word: string) => void
   disabled: boolean
   ownWord: string | null
+  shouldFocusAfterSubmit: boolean
 }
 
-export default function GuessInput({ value, onValueChange, onSubmit, disabled, ownWord }: GuessInputProps) {
+export default function GuessInput({ value, onValueChange, onSubmit, disabled, ownWord, shouldFocusAfterSubmit }: GuessInputProps) {
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const prevDisabled = useRef(disabled)
@@ -44,7 +45,11 @@ export default function GuessInput({ value, onValueChange, onSubmit, disabled, o
     onSubmit(word)
     onValueChange('')
     setError(null)
-    inputRef.current?.focus()
+    // Only re-focus if the user is using the native keyboard; OSK users should not
+    // trigger the native mobile keyboard by refocusing after each guess.
+    if (shouldFocusAfterSubmit) {
+      inputRef.current?.focus()
+    }
   }
 
   const canSubmit = value.length === CONFIG.wordLength && !disabled

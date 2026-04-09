@@ -112,7 +112,7 @@ Before anything else, offer to back up live data:
 
 Pre-deploy checks:
 1. Confirm `app/.env.local` exists: `Test-Path app/.env.local`
-2. Confirm `BUCKET_NAME` is set: `echo $BUCKET_NAME`
+2. Ensure `BUCKET_NAME` is set: run `echo $BUCKET_NAME`. If empty, read it from `cdk-outputs.json` (`LengleStack.BucketName`) and set it with `export BUCKET_NAME=<value>` before continuing.
 3. Run `cd app && npm run typecheck && npm run lint` — must pass before deploying
 
 If all checks pass:
@@ -206,11 +206,23 @@ git commit -m "{version}: {summary}
 git push origin main
 ```
 
+### C8a — Delete local release branch
+
+```
+git branch -d release/{version}
+```
+
+### C8b — Delete remote release branch
+
+```
+git push origin --delete release/{version}
+```
+
 ### C9 — Deploy to production
 
 Pre-deploy checks:
 1. Confirm `app/.env.local` exists: `Test-Path app/.env.local`
-2. Confirm `BUCKET_NAME` is set: `echo $BUCKET_NAME`
+2. Ensure `BUCKET_NAME` is set: run `echo $BUCKET_NAME`. If empty, read it from `cdk-outputs.json` (`LengleStack.BucketName`) and set it with `export BUCKET_NAME=<value>` before continuing.
 
 If checks pass:
 ```
@@ -224,7 +236,7 @@ Report the live URL from `cdk-outputs.json` (`WebsiteUrl` key) and confirm the s
 Tell the user:
 - Release {version} is closed, merged to `main`, and deployed to production
 - The live URL from `cdk-outputs.json`
-- Your workspace is now on `main`. The release branch `release/{version}` is preserved for reference.
+- Your workspace is now on `main`. The local and remote `release/{version}` branches have been deleted.
 - Ask if they want to start a new release
 
 ---
@@ -235,7 +247,7 @@ Triggered when the user asks to back up data, restore data, clear data, or reset
 
 ### D1 — Backup live data
 
-1. Confirm `BUCKET_NAME` is set: `echo $BUCKET_NAME`. If empty, tell the user to run `export BUCKET_NAME=<value from cdk-outputs.json>` and stop.
+1. Ensure `BUCKET_NAME` is set: run `echo $BUCKET_NAME`. If empty, read `cdk-outputs.json` to get the value from `LengleStack.BucketName` and run `export BUCKET_NAME=<value>` to set it. Do not ask the user to do this.
 2. Run `bash scripts/backup-data.sh` — this syncs `s3://${BUCKET_NAME}/data/` to a new timestamped folder under `backups/`.
 3. Report the folder created (e.g. `backups/20260406-143000/`).
 4. Commit the backup to git:
@@ -247,7 +259,7 @@ Triggered when the user asks to back up data, restore data, clear data, or reset
 
 ### D2 — Restore from backup
 
-1. Confirm `BUCKET_NAME` is set: `echo $BUCKET_NAME`. If empty, stop.
+1. Ensure `BUCKET_NAME` is set: run `echo $BUCKET_NAME`. If empty, read `cdk-outputs.json` to get the value from `LengleStack.BucketName` and run `export BUCKET_NAME=<value>` to set it. Do not ask the user to do this.
 2. List available backups: `ls backups/` — if the directory is empty or missing, stop and tell the user to run D1 first.
 3. Ask which backup to restore; default to the most recent one.
 4. Run `bash scripts/restore-data.sh backups/<chosen>`.

@@ -34,6 +34,21 @@ export function getPreviousPuzzleDate(): string {
 }
 
 /**
+ * Returns the next puzzle date string (YYYY-MM-DD) — one calendar day after the active puzzle date.
+ * Used to check whether tomorrow's word has been set before allowing play.
+ */
+export function getTomorrowPuzzleDate(): string {
+  const active = getActivePuzzleDate()
+  const [year, month, day] = active.split('-').map(Number)
+  const date = new Date(year, month - 1, day, 12)
+  date.setDate(date.getDate() + 1)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/**
  * Returns true if the given date string is strictly before the current active puzzle date.
  * YYYY-MM-DD lexicographic comparison is safe for ISO date strings.
  */

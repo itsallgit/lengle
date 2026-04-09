@@ -184,14 +184,18 @@ Each guess produces a numeric score calculated independently across all 5 letter
 - CTA 3: "Play Practice Puzzle" — violet CTA button, always available
 
 **State B — Player has set today's word, others still pending:**
-- CTA 1: "Set Tomorrow's Word" form if tomorrow's word not yet set; "✅ Words set for today and tomorrow" text if both words are set
-- CTA 2: "Today's Puzzles" — greyed-out card with waiting message "Waiting for [Name] to set their word…"
+- CTA 1: "Set Tomorrow's Word" form (with amber warning note "⚠️ Required to unlock today's puzzles") if tomorrow's word not yet set; "✅ Words set for today and tomorrow" text if both words are set
+- CTA 2: "Today's Puzzles" — always visible; play button disabled; sub-message varies:
+  - If tomorrow's word not set: "Set tomorrow's word above, then wait for others to be ready"
+  - If tomorrow's word set: "Waiting for [Name] to set their word…"
 - CTA 3: "Play Practice Puzzle" — always shown
 - The home page polls for updates so the player sees when others submit without refreshing
 
 **State C — All 3 words are set:**
-- CTA 1: "Set Tomorrow's Word" form if needed; confirmation text if both set
-- CTA 2: "Today's Puzzles" — violet CTA button to `/play`
+- CTA 1: "Set Tomorrow's Word" form (with amber warning note) if tomorrow not set; confirmation text if both set
+- CTA 2: "Today's Puzzles" — always visible:
+  - If tomorrow's word not set: play button disabled, sub-message "Set tomorrow's word above to unlock today's puzzles"
+  - If tomorrow's word set: play button enabled (violet), sub-message "All words are set — let's play!"
 - CTA 3: "Play Practice Puzzle" — always shown
 
 **Word submission status table:**
@@ -218,6 +222,13 @@ Each guess produces a numeric score calculated independently across all 5 letter
 ---
 
 ### Screen 3 — Today's Puzzles
+
+**Play guard:**
+- Players are blocked from playing today's puzzles unless they have set words for both today AND tomorrow
+- If today's word is not set, an amber warning banner appears above the puzzle panels with an inline "Today's Word" form
+- If tomorrow's word is not set (but today's is), the banner shows an inline "Tomorrow's Word" form
+- While blocked, the puzzle panels are visible but dimmed (`opacity-50 pointer-events-none`)
+- Once the missing word is submitted, the banner disappears and the panels become active
 
 **Layout:**
 - Two puzzle panels stacked vertically, full width
@@ -278,11 +289,12 @@ Two tabs: **Today**, **All Time** (Trends tab removed)
 - Shows a reverse-chronological **accordion list** of all past puzzle days
 - **Accordion header** for each day shows:
   - The date
-  - A completion indicator (e.g. checkmark) if all daily puzzles were completed by all players that day
+  - A green pill badge ("✓ All completed") if all daily puzzles were completed by all players that day; otherwise plain text "Not all completed"
 - **Expanded accordion** for a day is divided into **3 sections** — one per puzzle setter:
   - **Puzzle word display**: shown as green letter tiles if all players finished that puzzle; shown as 5 grey `?` tiles if not all players finished
   - **Setter identity**: the setter's player name and emoji displayed next to the puzzle word
-  - **Guess counts**: one row per non-setter player showing their total guess count for that puzzle. If a player did not complete the puzzle, shows a grey `?` tile instead of a number
+  - **Guess counts**: one row per non-setter player showing their total guess count for that puzzle. If a player did not complete the puzzle, shows a grey `?` tile instead of a number. Each row with a recorded guess count shows a **"View Guesses"** button
+- **"View Guesses" button**: navigates to `/history/{date}/{setterId}/{guesserId}` — a read-only past puzzle detail page (`PastPuzzleDetail`) showing the full tile view with saved overrides. A back button returns to Word History.
 - Current day's words and guesses are **not** shown in Word History until the puzzle day has ended (i.e. after 4am the following day)
 
 ---

@@ -88,6 +88,17 @@ These commit data — submitting a word or submitting a guess:
 Used for non-destructive helper actions like resetting tile colours:
 - "Tap here to reset tiles" / hint text when no overrides yet
 
+### 3.5 Back / navigation buttons
+
+Used to return to a previous page. Always rendered at the top of the page content, above all cards.
+
+**Rules:**
+- Shrink-to-content (do not use `w-full`)
+- Visually styled as a bordered pill so it reads unambiguously as a button
+- Full class: `flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50`
+- Label: `← Back`
+- Always uses `navigate(-1)` to return to the previous page in browser history
+
 **Rules:**
 - Full width within their container
 - `rounded-lg` (smaller radius than CTA buttons — visually less prominent)

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePlayer } from '../../App'
-import { getActivePuzzleDate, isPastDate } from '../../lib/date'
+import { getActivePuzzleDate, getTomorrowPuzzleDate, isPastDate } from '../../lib/date'
 import { readJson, writeToS3, listS3Keys } from '../../lib/s3'
 import { CONFIG, PRESET_EMOJIS } from '../../lib/config'
 import type { DayStatus, PuzzleWord } from '../../types'
@@ -10,17 +10,6 @@ import PlayerStatusList from './PlayerStatusList'
 import WordSetForm from './WordSetForm'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getTomorrowPuzzleDate(): string {
-  const active = getActivePuzzleDate()
-  const [year, month, day] = active.split('-').map(Number)
-  const date = new Date(year, month - 1, day, 12)
-  date.setDate(date.getDate() + 1)
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
 
 type LobbyState = 'A' | 'B' | 'C'
 
@@ -189,11 +178,9 @@ export default function Lobby() {
   const currentPlayerName = currentPlayerConfig?.name ?? playerId
   const currentEmoji = playerEmojis[playerId] ?? currentPlayerConfig?.defaultEmoji ?? '🎯'
 
-  const pendingPlayers = CONFIG.players.filter(
-    p => p.id !== playerId && todaySetByPlayer[p.id] !== true,
-  )
-
   const bothWordsSet = playerHasSetToday && tomorrowWord !== null
+
+  const canPlay = playerHasSetToday && tomorrowWord !== null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -264,6 +251,7 @@ export default function Lobby() {
             ) : !tomorrowWord ? (
               <>
                 <h2 className="mb-1 text-sm font-bold text-gray-900">Set Tomorrow's Word</h2>
+                <p className="mb-2 text-xs font-medium text-amber-600">⚠️ Required to unlock today's puzzles</p>
                 <p className="mb-4 text-xs text-gray-500">Today's word is already set ✅</p>
                 <WordSetForm
                   label="Enter a 5-letter word for tomorrow"
@@ -279,31 +267,32 @@ export default function Lobby() {
           <p className="text-center text-sm text-gray-500">✅ Words set for today and tomorrow</p>
         )}
 
-        {/* CTA 2 — Play Today's Puzzles */}
-        {!loading && lobbyState !== 'A' && (
+        {/* CTA 2 — Play Today's Puzzles (always visible after load) */}
+        {!loading && (
           <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-center space-y-4">
             <div>
               <h2 className="text-base font-bold text-gray-900">Today's Puzzles</h2>
-              {pendingPlayers.length === 0 ? (
-                <p className="mt-1 text-xs text-gray-500">All words are set — let's play!</p>
+              {lobbyState === 'A' ? (
+                <p className="mt-1 text-xs text-gray-500">Set today's word above to unlock today's puzzles</p>
+              ) : lobbyState === 'B' && !tomorrowWord ? (
+                <p className="mt-1 text-xs text-gray-500">Set tomorrow's word above, then wait for others to be ready</p>
+              ) : lobbyState === 'B' && tomorrowWord !== null ? (
+                <p className="mt-1 text-xs text-gray-500">Others haven't set their words yet — you can still play!</p>
+              ) : lobbyState === 'C' && !tomorrowWord ? (
+                <p className="mt-1 text-xs text-gray-500">Set tomorrow's word above to unlock today's puzzles</p>
               ) : (
-                <p className="mt-1 text-xs text-gray-500">
-                  Waiting for{' '}
-                  {pendingPlayers.map((p, i) => (
-                    <span key={p.id}>
-                      <span className="font-semibold">
-                        {CONFIG.players.find(cp => cp.id === p.id)?.name}
-                      </span>
-                      {i < pendingPlayers.length - 1 ? ' and ' : ''}
-                    </span>
-                  ))}{' '}
-                  to set their word…
-                </p>
+                <p className="mt-1 text-xs text-gray-500">All words are set — let's play!</p>
               )}
             </div>
             <button
-              onClick={() => navigate('/play')}
-              className="w-full rounded-xl bg-violet-700 px-6 py-3 text-sm font-semibold text-white hover:bg-violet-800"
+              type="button"
+              disabled={!canPlay}
+              onClick={() => { if (canPlay) navigate('/play') }}
+              className={`w-full rounded-xl px-6 py-3 text-sm font-semibold ${
+                canPlay
+                  ? 'bg-violet-700 text-white hover:bg-violet-800'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
             >
               Play Today's Puzzles
             </button>

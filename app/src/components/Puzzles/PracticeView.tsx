@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { CONFIG } from '../../lib/config'
 import { scoreGuess } from '../../lib/scoring'
 import WORD_LIST from '../../words/wordlist'
@@ -19,6 +19,23 @@ export default function PracticeView() {
   const [guesses, setGuesses] = useState<GuessEntry[]>([])
   const [inputValue, setInputValue] = useState('')
   const [currentOverrides, setCurrentOverrides] = useState<(TileOverride | null)[][]>([])
+
+  const lastInputSourceRef = useRef<'native' | 'onscreen'>('native')
+
+  function handleNativeInput(v: string) {
+    lastInputSourceRef.current = 'native'
+    setInputValue(v)
+  }
+
+  function handleOSKLetter(letter: string) {
+    lastInputSourceRef.current = 'onscreen'
+    setInputValue((prev) => (prev.length >= CONFIG.wordLength ? prev : prev + letter))
+  }
+
+  function handleOSKBackspace() {
+    lastInputSourceRef.current = 'onscreen'
+    setInputValue((prev) => prev.slice(0, -1))
+  }
 
   function handleGuessSubmit(word: string) {
     const result = scoreGuess(word, targetWord)
@@ -73,18 +90,15 @@ export default function PracticeView() {
           <>
             <GuessInput
               value={inputValue}
-              onValueChange={setInputValue}
+              onValueChange={handleNativeInput}
               onSubmit={handleGuessSubmit}
               disabled={false}
               ownWord={null}
+              shouldFocusAfterSubmit={lastInputSourceRef.current === 'native'}
             />
             <OnScreenKeyboard
-              onLetterPress={(letter) =>
-                setInputValue((prev) =>
-                  prev.length >= CONFIG.wordLength ? prev : prev + letter
-                )
-              }
-              onBackspace={() => setInputValue((prev) => prev.slice(0, -1))}
+              onLetterPress={handleOSKLetter}
+              onBackspace={handleOSKBackspace}
               disabled={false}
               guesses={guesses}
               overrides={currentOverrides}

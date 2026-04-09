@@ -495,15 +495,16 @@ src/components/
     └── Nav.tsx
 ```
 
-**Route inventory (as of v1.7):**
+**Route inventory (as of v1.12):**
 | Path | Component | Notes |
 |---|---|---|
 | `/` | `PlayerSelect` | Public, no auth required |
 | `/lobby` | `Lobby` | Home page (protected) |
-| `/play` | `PuzzleView` | Protected |
+| `/play` | `PuzzleView` | Protected; shows word-set guard if today's or tomorrow's word not set |
 | `/practice` | `PracticeView` | Protected; client-side only, no S3 writes |
 | `/leaderboard` | `Leaderboard` | Protected |
 | `/history` | `WordHistory` | Protected |
+| `/history/:date/:setterId/:guesserId` | `PastPuzzleDetail` | Protected; read-only past puzzle detail; not in navbar |
 
 **Page title convention:** Pages do not render their own `<h1>` title element. The persistent `Header` shows the current page name as the centred label in the navbar. The Nav dropdown uses the same name for each route. The canonical name for each page is defined in `PAGE_LABELS` in `Header.tsx` (and mirrored in `NAV_LINKS` in `Nav.tsx`). This avoids redundant titles and keeps the UI clean on small screens.
 
@@ -515,7 +516,9 @@ src/components/
 - Uses `onPointerDown` with `preventDefault()` to prevent the on-screen key press from stealing focus from the guess input field
 - Shown only when the puzzle is active (same condition as `GuessInput`)
 
-**`GuessInput` props (v1.11):** Now a controlled component. Receives `value: string` and `onValueChange: (v: string) => void` from the parent. Internal `useState` for value removed.
+**`GuessInput` props (v1.12):** Now a controlled component. Receives `value: string` and `onValueChange: (v: string) => void` from the parent. Internal `useState` for value removed. New required prop `shouldFocusAfterSubmit: boolean` — when `false`, skips the `inputRef.focus()` call after submitting a guess (used by `PuzzlePanel` to prevent the native mobile keyboard from appearing when the on-screen keyboard is in use).
+
+**`getTomorrowPuzzleDate` (v1.12):** Extracted from `Lobby.tsx` to `app/src/lib/date.ts` and exported. Returns the next puzzle date string (YYYY-MM-DD) — one calendar day after `getActivePuzzleDate()`.
 
 **`GuessList` props (v1.11):** New optional `onOverridesChange?: (overrides: (TileOverride | null)[][]) => void` prop. Called via `useEffect` whenever overrides state changes, allowing parents (`PuzzlePanel`) to track live override state for keyboard key colouring.
 

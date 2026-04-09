@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { usePlayer } from '../../App'
 import { CONFIG } from '../../lib/config'
 import type { DayData } from './WordHistory'
@@ -61,6 +62,7 @@ function GreyQuestionTile() {
 export default function WordHistoryDay({ date, dayData }: WordHistoryDayProps) {
   const [expanded, setExpanded] = useState(false)
   const { playerEmojis } = usePlayer()
+  const navigate = useNavigate()
 
   function getPlayerDisplay(id: string): string {
     const player = CONFIG.players.find((p) => p.id === id)
@@ -82,7 +84,9 @@ export default function WordHistoryDay({ date, dayData }: WordHistoryDayProps) {
           {dayData === null ? (
             <span className="text-xs text-gray-400">Loading…</span>
           ) : dayData.allCompleted ? (
-            <span className="text-xs font-medium text-green-600">✓ All completed</span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+              ✓ All completed
+            </span>
           ) : (
             <span className="text-xs text-gray-400">Not all completed</span>
           )}
@@ -107,12 +111,12 @@ export default function WordHistoryDay({ date, dayData }: WordHistoryDayProps) {
                 */}
                 <table className="w-full text-sm">
                   <tbody>
-                    {/* Row 1: setter name + word tiles */}
+                    {/* Row 1: setter name + word tiles (spans all 3 columns) */}
                     <tr>
                       <td className="w-px whitespace-nowrap pr-4 py-2 align-middle text-sm font-semibold text-gray-700">
                         {getPlayerDisplay(player.id)}
                       </td>
-                      <td className="py-2 align-middle">
+                      <td className="py-2 align-middle" colSpan={2}>
                         <WordTiles
                           word={puzzle?.word ?? null}
                           finished={puzzle?.allFinished ?? false}
@@ -140,6 +144,17 @@ export default function WordHistoryDay({ date, dayData }: WordHistoryDayProps) {
                                 </span>
                               ) : (
                                 <GreyQuestionTile />
+                              )}
+                            </td>
+                            <td className="py-1.5 text-right">
+                              {dayData.allCompleted && result?.guessCount != null && (
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/history/${date}/${player.id}/${guesser.id}`)}
+                                  className="rounded-full bg-blue-600 px-3 pt-1 pb-[0.35rem] text-xs font-medium text-white hover:bg-blue-700"
+                                >
+                                  View Guesses
+                                </button>
                               )}
                             </td>
                           </tr>
