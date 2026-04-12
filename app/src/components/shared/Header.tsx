@@ -57,7 +57,7 @@ export default function Header() {
               ))}
             </div>
           ) : pageLabel ? (
-            <span className="absolute left-1/2 -translate-x-1/2 text-base font-bold text-white">
+            <span className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-xl font-bold text-white" style={{ fontSize: 'clamp(0.875rem, 5vw, 1.25rem)' }}>
               {pageLabel}
             </span>
           ) : null}

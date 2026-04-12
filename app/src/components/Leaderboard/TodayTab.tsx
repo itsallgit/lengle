@@ -328,62 +328,64 @@ export default function TodayTab() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-xs text-gray-500">
-              <th className="pb-1 text-left font-medium">Player</th>
-              {gridView === 'guesses'
-                ? puzzleStats.map((puzzle) => (
-                    <th key={puzzle.setterId} className="pb-1 text-center font-medium">
-                      {puzzle.setterDisplay}
-                    </th>
-                  ))
-                : CONFIG.players.map((guesser) => (
-                    <th key={guesser.id} className="pb-1 text-center font-medium">
-                      {getPlayerDisplay(guesser.id)}
-                    </th>
-                  ))}
+              <th className="pb-1 text-left font-medium">Puzzle</th>
+              {CONFIG.players.map((player) => (
+                <th key={player.id} className="pb-1 text-center font-medium">
+                  {getPlayerDisplay(player.id)}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {gridView === 'guesses'
-              ? CONFIG.players.map((guesser) => (
-                  <tr key={guesser.id} className="border-b border-gray-100">
-                    <td className="py-2 font-medium text-gray-900">
-                      {getPlayerDisplay(guesser.id)}
+            {puzzleStats.map((puzzle) => (
+              <tr key={puzzle.setterId} className="border-b border-gray-100">
+                <td className="py-2 font-medium text-gray-900">{puzzle.setterDisplay}</td>
+                {CONFIG.players.map((player) => {
+                  const isSelf = puzzle.setterId === player.id
+                  let count: number | null = null
+                  if (!isSelf) {
+                    if (gridView === 'guesses') {
+                      // guesses player made on this puzzle
+                      count = puzzle.guessCounts[player.id]
+                    } else {
+                      // guesses this puzzle's setter made on player's puzzle (= points player earned from this setter)
+                      const playerPuzzle = puzzleStats.find((p) => p.setterId === player.id)
+                      count = playerPuzzle?.guessCounts[puzzle.setterId] ?? null
+                    }
+                  }
+                  return (
+                    <td key={player.id} className="py-2 text-center">
+                      {isSelf ? (
+                        <span className="text-gray-300">—</span>
+                      ) : count !== null ? (
+                        <span className="text-base font-bold text-gray-900">{count}</span>
+                      ) : (
+                        <GreyQuestionTile />
+                      )}
                     </td>
-                    {puzzleStats.map((puzzle) => (
-                      <td key={puzzle.setterId} className="py-2 text-center">
-                        {puzzle.setterId === guesser.id ? (
-                          <span className="text-gray-300">—</span>
-                        ) : puzzle.guessCounts[guesser.id] !== null ? (
-                          <span className="text-base font-bold text-gray-900">
-                            {puzzle.guessCounts[guesser.id]}
-                          </span>
-                        ) : (
-                          <GreyQuestionTile />
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              : puzzleStats.map((puzzle) => (
-                  <tr key={puzzle.setterId} className="border-b border-gray-100">
-                    <td className="py-2 font-medium text-gray-900">
-                      {puzzle.setterDisplay}
-                    </td>
-                    {CONFIG.players.map((guesser) => (
-                      <td key={guesser.id} className="py-2 text-center">
-                        {puzzle.setterId === guesser.id ? (
-                          <span className="text-gray-300">—</span>
-                        ) : puzzle.guessCounts[guesser.id] !== null ? (
-                          <span className="text-base font-bold text-gray-900">
-                            {puzzle.guessCounts[guesser.id]}
-                          </span>
-                        ) : (
-                          <GreyQuestionTile />
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                  )
+                })}
+              </tr>
+            ))}
+            <tr className="border-t-2 border-gray-200 bg-gray-50">
+              <td className="py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</td>
+              {CONFIG.players.map((player) => {
+                let total = 0
+                for (const puzzle of puzzleStats) {
+                  if (puzzle.setterId === player.id) continue
+                  const count =
+                    gridView === 'guesses'
+                      ? puzzle.guessCounts[player.id]
+                      : puzzleStats.find((p) => p.setterId === player.id)?.guessCounts[puzzle.setterId] ?? null
+                  if (count !== null) total += count
+                }
+                return (
+                  <td key={player.id} className="py-2 text-center">
+                    <span className="text-sm font-bold text-gray-900">{total}</span>
+                  </td>
+                )
+              })}
+            </tr>
           </tbody>
         </table>
       </div>
