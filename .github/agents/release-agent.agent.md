@@ -86,9 +86,10 @@ Report results and stop on failure.
 1. Run checks and abort on failure
 2. Build with `cd app && npx vite build --mode nonprod`
 3. Deploy with `bash scripts/deploy.sh nonprod`
-4. Verify the non-prod URL returns HTTP 200
-5. Commit WIP automatically with `git add -A && git commit -m "wip({version}): {description}"`
-6. Report the non-prod URL
+4. Upload What's New content: `aws s3 cp scripts/whats-new.json s3://{nonprod_bucket}/data/whats-new.json --profile lengle`
+5. Verify the non-prod URL returns HTTP 200
+6. Commit WIP automatically with `git add -A && git commit -m "wip({version}): {description}"`
+7. Report the non-prod URL
 
 ### B3 — Commit progress
 
@@ -114,13 +115,14 @@ Communicate which path was chosen and why.
 ## Routine C — Close Release
 
 1. Run `cd app && npm run typecheck && npm run lint` and abort on failure
-2. Build the release commit message from the plan Summary and Changes included list
-3. Show the commit message to the user and wait for confirmation
-4. Commit on the release branch
-5. Push the release branch
-6. Squash-merge into `main`
-7. Delete the local and remote release branch
-8. Report that the release is merged and hand off to Production Agent if the user wants production deployment
+2. Confirm `scripts/whats-new.json` has an entry for this release version — if not, remind the user to add one before closing
+3. Build the release commit message from the plan Summary and Changes included list
+4. Show the commit message to the user and wait for confirmation
+5. Commit on the release branch
+6. Push the release branch
+7. Squash-merge into `main`
+8. Delete the local and remote release branch
+9. Report that the release is merged and hand off to Production Agent if the user wants production deployment
 
 ## Routine D — Hotfix
 

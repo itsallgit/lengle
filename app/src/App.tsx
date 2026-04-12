@@ -9,6 +9,9 @@ import PracticeView from './components/Puzzles/PracticeView'
 import PastPuzzleDetail from './components/Puzzles/PastPuzzleDetail'
 import Leaderboard from './components/Leaderboard/Leaderboard'
 import WordHistory from './components/WordHistory/WordHistory'
+import SettingsView from './components/Settings/SettingsView'
+import WhatsNewView from './components/WhatsNew/WhatsNewView'
+import { SettingsProvider } from './context/SettingsContext'
 import { useResultsFinalisation } from './hooks/useResultsFinalisation'
 import { useS3Poll } from './hooks/useS3Poll'
 
@@ -77,6 +80,8 @@ function AppRoutes() {
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/history" element={<WordHistory />} />
         <Route path="/history/:date/:setterId/:guesserId" element={<PastPuzzleDetail />} />
+        <Route path="/settings" element={<SettingsView />} />
+        <Route path="/whats-new" element={<WhatsNewView />} />
       </Route>
 
       {/* Catch-all → Player Select */}
@@ -114,10 +119,12 @@ export default function App() {
   }
 
   return (
-    <PlayerContext.Provider value={{ playerId, setPlayerId, playerEmojis, setPlayerEmoji }}>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </PlayerContext.Provider>
+    <SettingsProvider>
+      <PlayerContext.Provider value={{ playerId, setPlayerId, playerEmojis, setPlayerEmoji }}>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </PlayerContext.Provider>
+    </SettingsProvider>
   )
 }

@@ -5,6 +5,9 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT_DIR=$(cd "${SCRIPT_DIR}/.." && pwd)
 ENVIRONMENT="${1:-nonprod}"
 
+source "${SCRIPT_DIR}/aws-auth.sh"
+ensure_aws_auth
+
 resolve_output() {
   local key="$1"
 

@@ -55,6 +55,7 @@ Do not duplicate those standards across every agent unless a workflow needs a di
 - `app/src/lib/date.ts` for day and reset logic
 - `app/src/types/index.ts` for shared TypeScript types
 - `scripts/` for deploy, backup, restore, delete, sync, and env generation utilities
+- `scripts/whats-new.json` — source of truth for What's New page content; uploaded to `data/whats-new.json` in S3 on every deploy
 
 ## Release note
 

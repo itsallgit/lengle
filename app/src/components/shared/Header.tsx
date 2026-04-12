@@ -1,12 +1,15 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getActivePuzzleDate } from '../../lib/date'
 import { NavMenu } from './Nav'
+import { useWhatsNew } from '../../hooks/useWhatsNew'
 
 const PAGE_LABELS: Record<string, string> = {
   '/play': 'Play',
   '/practice': 'Practice',
   '/leaderboard': 'Scores',
   '/history': 'Past Puzzles',
+  '/settings': 'Settings',
+  '/whats-new': "What's New",
 }
 
 /**
@@ -17,6 +20,7 @@ export default function Header() {
   const dateStr = getActivePuzzleDate() // YYYY-MM-DD
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const { isUnread } = useWhatsNew()
   const pageLabel = PAGE_LABELS[pathname] ?? (pathname.startsWith('/history/') ? 'Past Puzzle' : null)
 
   // Parse as local noon to avoid timezone/DST edge cases
@@ -41,6 +45,17 @@ export default function Header() {
               className="text-sm font-medium text-gray-400 hover:text-white"
             >
               ← Back
+            </button>
+          ) : isHome ? (
+            <button
+              type="button"
+              onClick={() => navigate('/whats-new')}
+              aria-label="What's New"
+              className={isUnread
+                ? 'flex h-7 items-center justify-center rounded-full bg-green-500 px-2.5 text-xs font-bold text-white hover:bg-green-400 transition-colors'
+                : 'text-xs font-medium text-gray-500 hover:text-gray-300 transition-colors'}
+            >
+              {isUnread ? 'NEW' : `v${__APP_VERSION__}`}
             </button>
           ) : (
             <span className={`text-sm font-medium text-gray-400 ${pathname === '/play' ? '' : 'invisible'}`}>{formatted}</span>

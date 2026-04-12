@@ -17,6 +17,17 @@ description: Use when building or deploying the app to production or non-product
 - Prod: `cd app && npx vite build --mode prod` then `bash scripts/deploy.sh prod`
 - No environment argument defaults to `nonprod`
 
+## What's New content upload
+
+After every app deploy, upload the release notes to the same bucket:
+
+```
+# Resolve bucket name first from cdk-outputs.json, then:
+aws s3 cp scripts/whats-new.json s3://{bucket}/data/whats-new.json --profile lengle
+```
+
+This applies to both non-prod and prod deploys. The `data/whats-new.json` file in S3 is what the app reads at runtime — it is **not** part of the `app/dist/` build output and must be uploaded separately.
+
 ## Validation rules
 
 - Non-prod deploys must verify the website returns HTTP 200

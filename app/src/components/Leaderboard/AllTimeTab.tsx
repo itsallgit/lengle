@@ -5,12 +5,18 @@ import { getActivePuzzleDate } from '../../lib/date'
 import { listS3Keys, readJson } from '../../lib/s3'
 import type { PlayerGuesses } from '../../types'
 
+interface DayStats {
+  date: string
+  guesserScore: Record<string, number>
+  wordSetterScore: Record<string, number>
+}
+
 interface AllTimeStats {
-  completedDayCount: number
-  totalPastDays: number
+  daysWithData: number
   guesserScore: Record<string, number>
   wordSetterScore: Record<string, number>
   overallWinnerIds: string[]
+  dayStats: DayStats[]
 }
 
 function extractPastDates(keys: string[], activePuzzleDate: string): string[] {
@@ -25,26 +31,18 @@ function extractPastDates(keys: string[], activePuzzleDate: string): string[] {
   return Array.from(dateSet).sort()
 }
 
-function isCompletedDay(
-  guessesPerPlayer: (PlayerGuesses | null)[][],
-  dateIndex: number,
-): boolean {
-  for (let pi = 0; pi < CONFIG.players.length; pi++) {
-    const guesser = CONFIG.players[pi]
-    const pg = guessesPerPlayer[pi][dateIndex]
-    if (!pg) return false
-    for (const setter of CONFIG.players) {
-      if (setter.id === guesser.id) continue
-      const forPuzzle = pg.guesses.filter((g) => g.puzzle_setter_id === setter.id)
-      if (!forPuzzle.some((g) => g.is_correct)) return false
-    }
-  }
-  return true
+function formatDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day, 12).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
 export default function AllTimeTab() {
   const [stats, setStats] = useState<AllTimeStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [historyView, setHistoryView] = useState<'guesses' | 'points'>('guesses')
   const { playerEmojis } = usePlayer()
 
   function getPlayerDisplay(id: string): string {
@@ -64,11 +62,11 @@ export default function AllTimeTab() {
 
       if (pastDates.length === 0) {
         setStats({
-          completedDayCount: 0,
-          totalPastDays: 0,
+          daysWithData: 0,
           guesserScore: emptyScores(),
           wordSetterScore: emptyScores(),
           overallWinnerIds: CONFIG.players.map((p) => p.id),
+          dayStats: [],
         })
         setLoading(false)
         return
@@ -87,37 +85,56 @@ export default function AllTimeTab() {
 
       const guesserScore: Record<string, number> = emptyScores()
       const wordSetterScore: Record<string, number> = emptyScores()
-      let completedDayCount = 0
+      let daysWithData = 0
+      const dayStatsArr: DayStats[] = []
 
       for (let di = 0; di < pastDates.length; di++) {
-        if (!isCompletedDay(guessesPerPlayer, di)) continue
-        completedDayCount++
+        const dayGuesserScore: Record<string, number> = emptyScores()
+        const dayWordSetterScore: Record<string, number> = emptyScores()
+        let dayHasData = false
 
         for (let pi = 0; pi < CONFIG.players.length; pi++) {
           const guesser = CONFIG.players[pi]
           const pg = guessesPerPlayer[pi][di]
           if (!pg) continue
-
           for (const setter of CONFIG.players) {
             if (setter.id === guesser.id) continue
             const forPuzzle = pg.guesses.filter((g) => g.puzzle_setter_id === setter.id)
+            if (forPuzzle.length > 0) dayHasData = true
+            dayGuesserScore[guesser.id] += forPuzzle.length
+            dayWordSetterScore[setter.id] += forPuzzle.length
             guesserScore[guesser.id] += forPuzzle.length
             wordSetterScore[setter.id] += forPuzzle.length
           }
         }
+
+        if (dayHasData) {
+          daysWithData++
+          dayStatsArr.push({
+            date: pastDates[di],
+            guesserScore: dayGuesserScore,
+            wordSetterScore: dayWordSetterScore,
+          })
+        }
       }
 
-      const minScore = Math.min(...CONFIG.players.map((p) => guesserScore[p.id]))
-      const overallWinnerIds = CONFIG.players
-        .filter((p) => guesserScore[p.id] === minScore)
-        .map((p) => p.id)
+      // Newest first
+      dayStatsArr.reverse()
+
+      const hasData = Object.values(guesserScore).some((s) => s > 0)
+      const minScore = hasData
+        ? Math.min(...CONFIG.players.map((p) => guesserScore[p.id]))
+        : 0
+      const overallWinnerIds = hasData
+        ? CONFIG.players.filter((p) => guesserScore[p.id] === minScore).map((p) => p.id)
+        : CONFIG.players.map((p) => p.id)
 
       setStats({
-        completedDayCount,
-        totalPastDays: pastDates.length,
+        daysWithData,
         guesserScore,
         wordSetterScore,
         overallWinnerIds,
+        dayStats: dayStatsArr,
       })
       setLoading(false)
     }
@@ -134,6 +151,7 @@ export default function AllTimeTab() {
     (a, b) => stats.guesserScore[a.id] - stats.guesserScore[b.id],
   )
 
+  const hasData = Object.values(stats.guesserScore).some((s) => s > 0)
   const leastGuessesPlayer = sortedPlayers[0]
   const maxPoints = Math.max(...CONFIG.players.map((p) => stats.wordSetterScore[p.id]))
   const mostPointsPlayer =
@@ -141,18 +159,14 @@ export default function AllTimeTab() {
 
   return (
     <div className="space-y-8">
-      {/* Hero stat: completed days */}
+      {/* Hero stat: days played */}
       <div className="text-center">
-        <p className="text-6xl font-black text-gray-900">{stats.completedDayCount}</p>
-        <p className="mt-1 text-sm text-gray-500">Completed puzzle days</p>
-        <p className="mt-1 text-xs text-gray-400 px-8">
-          A completed puzzle day is when all three players finish all puzzles.
-          Only completed days count toward total scores.
-        </p>
+        <p className="text-6xl font-black text-gray-900">{stats.daysWithData}</p>
+        <p className="mt-1 text-sm text-gray-500">Puzzle days played</p>
       </div>
 
       {/* Leaders section */}
-      {stats.completedDayCount > 0 && (
+      {hasData && (
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col items-center text-center">
             <span className="text-5xl leading-none">
@@ -171,7 +185,7 @@ export default function AllTimeTab() {
         </div>
       )}
 
-      {/* Merged Guesses + Points table */}
+      {/* Totals table */}
       <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
         <table className="w-full text-sm">
           <thead>
@@ -185,18 +199,18 @@ export default function AllTimeTab() {
             {sortedPlayers.map((player) => {
               const isWinner = stats.overallWinnerIds.includes(player.id)
               return (
-                <tr key={player.id} className={`border-b border-gray-100 ${isWinner && stats.completedDayCount > 0 ? 'bg-amber-50' : ''}`}>
+                <tr key={player.id} className={`border-b border-gray-100 ${isWinner && hasData ? 'bg-amber-50' : ''}`}>
                   <td className="py-2 font-medium text-gray-900">{getPlayerDisplay(player.id)}</td>
                   <td className="py-2 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <span className="text-base font-bold text-gray-900">{stats.guesserScore[player.id]}</span>
-                      {isWinner && stats.completedDayCount > 0 && <span>🏆</span>}
+                      {isWinner && hasData && <span>🏆</span>}
                     </div>
                   </td>
                   <td className="py-2 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <span className="text-base font-bold text-gray-900">{stats.wordSetterScore[player.id]}</span>
-                      {player.id === mostPointsPlayer.id && stats.completedDayCount > 0 && <span>🏆</span>}
+                      {player.id === mostPointsPlayer.id && hasData && <span>🏆</span>}
                     </div>
                   </td>
                 </tr>
@@ -211,6 +225,66 @@ export default function AllTimeTab() {
           <span>Total guesses others made on your words. Your words were harder to crack (higher is better).</span>
         </div>
       </div>
+
+      {/* Per-day history table */}
+      {stats.dayStats.length > 0 && (
+        <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex rounded-lg bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setHistoryView('guesses')}
+              className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${historyView === 'guesses' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Guesses
+            </button>
+            <button
+              type="button"
+              onClick={() => setHistoryView('points')}
+              className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${historyView === 'points' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Points
+            </button>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-xs text-gray-500">
+                <th className="pb-1 text-left font-medium">Day</th>
+                {CONFIG.players.map((player) => (
+                  <th key={player.id} className="pb-1 text-center font-medium">
+                    {getPlayerDisplay(player.id)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {stats.dayStats.map((day) => {
+                const scores = historyView === 'guesses' ? day.guesserScore : day.wordSetterScore
+                const values = CONFIG.players.map((p) => scores[p.id] ?? 0)
+                const bestValue =
+                  historyView === 'guesses' ? Math.min(...values) : Math.max(...values)
+                return (
+                  <tr key={day.date} className="border-b border-gray-100">
+                    <td className="py-2 text-xs text-gray-500">{formatDate(day.date)}</td>
+                    {CONFIG.players.map((player) => {
+                      const value = scores[player.id] ?? 0
+                      const isBest = value === bestValue
+                      return (
+                        <td key={player.id} className="py-2 text-center">
+                          <span className={`text-sm font-bold ${isBest ? 'text-green-600' : 'text-gray-900'}`}>
+                            {value}
+                          </span>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
+
+

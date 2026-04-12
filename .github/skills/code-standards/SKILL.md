@@ -30,3 +30,12 @@ description: Use when designing, writing, or reviewing code in the Lengle repo, 
 
 - `app/package.json` must match the active release version
 - `__APP_VERSION__` is sourced from the package version via Vite
+
+## What's New feature
+
+- `scripts/whats-new.json` is the source of truth for What's New release notes
+- It is uploaded to `data/whats-new.json` in S3 as part of every deploy (non-prod and prod)
+- `WhatsNewView` reads this file at runtime via `readJson()` — no code change needed to update content
+- `useWhatsNew` hook (`app/src/hooks/useWhatsNew.ts`) tracks read state in `localStorage` under `lengle_whats_new_read`, compared against `__APP_VERSION__`
+- The unread **NEW** badge on the home screen reappears automatically whenever `__APP_VERSION__` changes
+- Every release must prepend a new entry to the `releases` array in `scripts/whats-new.json` before closing

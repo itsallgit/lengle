@@ -12,6 +12,8 @@ const NAV_LINKS: NavLink[] = [
   { to: '/practice', label: 'Practice' },
   { to: '/leaderboard', label: 'Scores' },
   { to: '/history', label: 'Past Puzzles' },
+  { to: '/settings', label: 'Settings' },
+  { to: '/whats-new', label: "What's New" },
 ]
 
 /**

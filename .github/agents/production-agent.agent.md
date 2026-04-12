@@ -21,7 +21,8 @@ The data scripts now auto-resolve AWS credentials and profile context. Prefer ru
 4. Run `bash scripts/backup-data.sh prod` before deployment
 5. Commit the backup under `backups/`
 6. Deploy with `bash scripts/deploy.sh prod`
-7. Read `cdk-outputs.json` and report the prod `WebsiteUrl`
+7. Upload What's New content: `aws s3 cp scripts/whats-new.json s3://{prod_bucket}/data/whats-new.json --profile lengle`
+8. Read `cdk-outputs.json` and report the prod `WebsiteUrl`
 
 ## Routine B — Emergency rollback
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePlayer } from '../../App'
+import { useSettings } from '../../context/SettingsContext'
 import { CONFIG } from '../../lib/config'
 import { readJson, writeToS3 } from '../../lib/s3'
 import { scoreGuess } from '../../lib/scoring'
@@ -40,6 +41,7 @@ export default function PuzzlePanel({
   const isSolved = myGuesses.some((g) => g.is_correct)
   const setterPlayer = CONFIG.players.find((p) => p.id === setterId)
   const { playerEmojis } = usePlayer()
+  const { settings } = useSettings()
   const setterEmoji = setterPlayer ? (playerEmojis[setterId] ?? setterPlayer.defaultEmoji) : ''
   const setterName = setterPlayer ? `${setterEmoji} ${setterPlayer.name}` : setterId
 
@@ -232,13 +234,15 @@ export default function PuzzlePanel({
                   ownWord={ownWord}
                   shouldFocusAfterSubmit={lastInputSourceRef.current === 'native'}
                 />
-                <OnScreenKeyboard
-                  onLetterPress={handleOSKLetter}
-                  onBackspace={handleOSKBackspace}
-                  disabled={isSubmitting}
-                  guesses={myGuesses}
-                  overrides={currentOverrides}
-                />
+                {settings.showKeyboard && (
+                  <OnScreenKeyboard
+                    onLetterPress={handleOSKLetter}
+                    onBackspace={handleOSKBackspace}
+                    disabled={isSubmitting}
+                    guesses={myGuesses}
+                    overrides={currentOverrides}
+                  />
+                )}
               </>
             )}
           </div>

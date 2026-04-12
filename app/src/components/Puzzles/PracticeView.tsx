@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useSettings } from '../../context/SettingsContext'
 import { CONFIG } from '../../lib/config'
 import { scoreGuess } from '../../lib/scoring'
 import WORD_LIST from '../../words/wordlist'
@@ -21,6 +22,7 @@ export default function PracticeView() {
   const [currentOverrides, setCurrentOverrides] = useState<(TileOverride | null)[][]>([])
 
   const lastInputSourceRef = useRef<'native' | 'onscreen'>('native')
+  const { settings } = useSettings()
 
   function handleNativeInput(v: string) {
     lastInputSourceRef.current = 'native'
@@ -96,13 +98,15 @@ export default function PracticeView() {
               ownWord={null}
               shouldFocusAfterSubmit={lastInputSourceRef.current === 'native'}
             />
-            <OnScreenKeyboard
-              onLetterPress={handleOSKLetter}
-              onBackspace={handleOSKBackspace}
-              disabled={false}
-              guesses={guesses}
-              overrides={currentOverrides}
-            />
+            {settings.showKeyboard && (
+              <OnScreenKeyboard
+                onLetterPress={handleOSKLetter}
+                onBackspace={handleOSKBackspace}
+                disabled={false}
+                guesses={guesses}
+                overrides={currentOverrides}
+              />
+            )}
           </>
         )}
       </main>

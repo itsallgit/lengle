@@ -2,15 +2,18 @@ import { useMemo } from 'react'
 import type { GuessEntry } from '../../types'
 import type { TileOverride } from './tileOverride'
 
-type KeyColor = 'green' | 'orange' | 'grey' | 'default' | 'red'
+type NamedColor = 'green' | 'orange' | 'grey'
 
-const KEY_BG: Record<KeyColor, string> = {
-  default: 'bg-gray-700 text-white',
-  green:   'bg-green-600 text-white',
-  orange:  'bg-orange-400 text-white',
-  grey:    'bg-gray-400 text-white',
-  red:     'bg-red-500 text-white',
+// Ordered so stripes always appear in a consistent sequence
+const COLOR_ORDER: NamedColor[] = ['green', 'orange', 'grey']
+
+const COLOR_HEX: Record<NamedColor, string> = {
+  green:  '#16a34a',
+  orange: '#fb923c',
+  grey:   '#9ca3af',
 }
+
+const DEFAULT_BG = '#374151'
 
 const ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -18,33 +21,40 @@ const ROWS = [
   ['Z', 'X', 'C', 'V', 'B', 'N', 'M'],
 ]
 
-function computeKeyColor(
+/**
+ * Collects every tile-override color assigned to `letter` across all guesses.
+ * Returns an ordered, deduplicated array of named colors, or an empty array if
+ * the letter has not appeared or has no overrides set yet.
+ */
+function computeKeyColors(
   letter: string,
   guesses: GuessEntry[],
   overrides: (TileOverride | null)[][],
-): KeyColor {
-  // Find the most recent guess that contains this letter
-  let lastRowIdx = -1
-  for (let i = guesses.length - 1; i >= 0; i--) {
-    if (guesses[i].word.toUpperCase().includes(letter)) {
-      lastRowIdx = i
-      break
-    }
-  }
-  if (lastRowIdx === -1) return 'default'
-
-  // Collect all tile overrides for this letter within that guess only
-  const tileValues: (TileOverride | null)[] = []
-  guesses[lastRowIdx].word.split('').forEach((char, colIdx) => {
-    if (char.toUpperCase() === letter) {
-      tileValues.push(overrides[lastRowIdx]?.[colIdx] ?? null)
-    }
+): NamedColor[] {
+  const found = new Set<NamedColor>()
+  guesses.forEach((guess, rowIdx) => {
+    guess.word.toUpperCase().split('').forEach((char, colIdx) => {
+      if (char === letter) {
+        const override = overrides[rowIdx]?.[colIdx]
+        if (override !== null && override !== undefined) {
+          found.add(override as NamedColor)
+        }
+      }
+    })
   })
+  return COLOR_ORDER.filter((c) => found.has(c))
+}
 
-  if (tileValues.some((v) => v === null)) return 'default'
-  const unique = new Set(tileValues)
-  if (unique.size === 1) return tileValues[0] as KeyColor
-  return 'red'
+function buildKeyStyle(colors: NamedColor[]): React.CSSProperties {
+  if (colors.length === 0) return { background: DEFAULT_BG }
+  if (colors.length === 1) return { background: COLOR_HEX[colors[0]] }
+
+  const pct = 100 / colors.length
+  const stops = colors.flatMap((c, i) => [
+    `${COLOR_HEX[c]} ${i * pct}%`,
+    `${COLOR_HEX[c]} ${(i + 1) * pct}%`,
+  ])
+  return { background: `linear-gradient(to bottom, ${stops.join(', ')})` }
 }
 
 interface OnScreenKeyboardProps {
@@ -62,15 +72,13 @@ export default function OnScreenKeyboard({
   guesses,
   overrides,
 }: OnScreenKeyboardProps) {
-  const keyColors = useMemo(() => {
-    const map: Record<string, KeyColor> = {}
+  const keyColorMap = useMemo(() => {
+    const map: Record<string, NamedColor[]> = {}
     'QWERTYUIOPASDFGHJKLZXCVBNM'.split('').forEach((l) => {
-      map[l] = computeKeyColor(l, guesses, overrides)
+      map[l] = computeKeyColors(l, guesses, overrides)
     })
     return map
   }, [guesses, overrides])
-
-  const hasConflict = Object.values(keyColors).some((c) => c === 'red')
 
   const keyBase =
     'flex flex-1 items-center justify-center rounded-lg py-3 text-sm font-bold uppercase select-none active:opacity-70 transition-colors'
@@ -88,7 +96,8 @@ export default function OnScreenKeyboard({
                 e.preventDefault()
                 if (!disabled) onLetterPress(letter)
               }}
-              className={`${keyBase} ${KEY_BG[keyColors[letter] ?? 'default']}`}
+              className={`${keyBase} text-white`}
+              style={buildKeyStyle(keyColorMap[letter])}
               aria-label={letter}
             >
               {letter}
@@ -102,21 +111,19 @@ export default function OnScreenKeyboard({
                 e.preventDefault()
                 if (!disabled) onBackspace()
               }}
-              className={`${keyBase} flex-[1.5] ${KEY_BG.default}`}
+              className={`${keyBase} flex-[1.5] text-white`}
+              style={{ background: DEFAULT_BG }}
               aria-label="Backspace"
             >
-              ←
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+              </svg>
             </button>
           )}
         </div>
       ))}
-      {hasConflict && (
-        <p className="mt-1 text-center text-xs text-gray-500">
-          Red key = conflicting tile colours for that letter
-        </p>
-      )}
       <p className="mt-1 text-center text-xs text-gray-400">
-        Key colour matches most recent guess tile
+        Key colours show all tile results for that letter
       </p>
     </div>
   )
