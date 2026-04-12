@@ -1,0 +1,24 @@
+---
+description: Use when building or deploying the app to production or non-production, or when validating deployment readiness.
+---
+
+# Deployment
+
+## Pre-deploy checklist
+
+1. Run `cd app && npm run typecheck`
+2. Run `cd app && npm run lint`
+3. Confirm the matching env file exists: `app/.env.prod` or `app/.env.nonprod`
+4. Resolve the target bucket from `cdk-outputs.json`
+
+## Build and deploy commands
+
+- Non-prod: `cd app && npx vite build --mode nonprod` then `bash scripts/deploy.sh nonprod`
+- Prod: `cd app && npx vite build --mode prod` then `bash scripts/deploy.sh prod`
+- No environment argument defaults to `nonprod`
+
+## Validation rules
+
+- Non-prod deploys must verify the website returns HTTP 200
+- Production deploys require a git tag on `main` before deployment
+- Always back up prod data before production deployment

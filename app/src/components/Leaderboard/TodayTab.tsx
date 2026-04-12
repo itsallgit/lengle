@@ -24,7 +24,7 @@ interface TodayData {
 /** Simple green-tile word display, matching WordHistory style. */
 function WordTilesDisplay({ word }: { word: string }) {
   return (
-    <div className="my-2 flex gap-1">
+    <div className="flex gap-1">
       {word.split('').map((letter, i) => (
         <div
           key={i}
@@ -40,7 +40,7 @@ function WordTilesDisplay({ word }: { word: string }) {
 /** Five grey question-mark tiles shown before a puzzle is fully solved. */
 function HiddenWordDisplay() {
   return (
-    <div className="my-2 flex gap-1">
+    <div className="flex gap-1">
       {Array.from({ length: CONFIG.wordLength }).map((_, i) => (
         <div
           key={i}
@@ -66,6 +66,7 @@ export default function TodayTab() {
   const [date] = useState(() => getActivePuzzleDate())
   const [data, setData] = useState<TodayData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [gridView, setGridView] = useState<'guesses' | 'points'>('guesses')
   const { playerEmojis } = usePlayer()
 
   function getPlayerDisplay(id: string): string {
@@ -289,62 +290,103 @@ export default function TodayTab() {
         </div>
       </div>
 
-      {/* Per-puzzle sections */}
-      {puzzleStats.map((puzzle) => (
-        <div
-          key={puzzle.setterId}
-          className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm"
-        >
-          <h2 className="mb-1 text-sm font-bold text-gray-900">
-            {puzzle.setterDisplay}&apos;s Puzzle
-          </h2>
-
-          {/* Word tile reveal */}
-          {puzzle.allSolved && puzzle.word ? (
-            <WordTilesDisplay word={puzzle.word} />
-          ) : (
-            <HiddenWordDisplay />
-          )}
-
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
-                <th className="pb-1 font-medium">Player</th>
-                <th className="pb-1 text-right font-medium">Guesses</th>
-                <th className="pb-1 text-right font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {CONFIG.players
-                .filter((p) => p.id !== puzzle.setterId)
-                .map((guesser) => {
-                  const count = puzzle.guessCounts[guesser.id]
-                  const isWinner = puzzle.winnerIds.includes(guesser.id)
-                  return (
-                    <tr
-                      key={guesser.id}
-                      className={`border-b border-gray-100 ${isWinner ? 'bg-amber-50' : ''}`}
-                    >
-                      <td className="py-2 font-medium text-gray-900">
-                        {getPlayerDisplay(guesser.id)}
-                      </td>
-                      <td className="py-2 text-right">
-                        {count !== null ? <span className="text-base font-bold text-gray-900">{count}</span> : <GreyQuestionTile />}
-                      </td>
-                      <td className="py-2 text-right">
-                        {isWinner && <span>🏆</span>}
-                      </td>
-                    </tr>
-                  )
-                })}
-            </tbody>
-          </table>
+      {/* Puzzle Words summary */}
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <h2 className="mb-2 text-sm font-bold text-gray-900">Puzzle Words</h2>
+        <div className="space-y-0.5">
+          {puzzleStats.map((puzzle) => (
+            <div key={puzzle.setterId} className="flex items-center gap-3 py-0.5">
+              <span className="w-24 shrink-0 text-sm font-medium text-gray-900">
+                {puzzle.setterDisplay}
+              </span>
+              {puzzle.allSolved && puzzle.word ? (
+                <WordTilesDisplay word={puzzle.word} />
+              ) : (
+                <HiddenWordDisplay />
+              )}
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
 
-      <p className="text-xs text-gray-400">
-        Updates as players complete puzzles throughout the day.
-      </p>
+      {/* Guesses / Points grid with toggle */}
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex rounded-lg bg-gray-100 p-1">
+          <button
+            onClick={() => setGridView('guesses')}
+            className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${gridView === 'guesses' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Guesses
+          </button>
+          <button
+            onClick={() => setGridView('points')}
+            className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${gridView === 'points' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Points
+          </button>
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 text-xs text-gray-500">
+              <th className="pb-1 text-left font-medium">Player</th>
+              {gridView === 'guesses'
+                ? puzzleStats.map((puzzle) => (
+                    <th key={puzzle.setterId} className="pb-1 text-center font-medium">
+                      {puzzle.setterDisplay}
+                    </th>
+                  ))
+                : CONFIG.players.map((guesser) => (
+                    <th key={guesser.id} className="pb-1 text-center font-medium">
+                      {getPlayerDisplay(guesser.id)}
+                    </th>
+                  ))}
+            </tr>
+          </thead>
+          <tbody>
+            {gridView === 'guesses'
+              ? CONFIG.players.map((guesser) => (
+                  <tr key={guesser.id} className="border-b border-gray-100">
+                    <td className="py-2 font-medium text-gray-900">
+                      {getPlayerDisplay(guesser.id)}
+                    </td>
+                    {puzzleStats.map((puzzle) => (
+                      <td key={puzzle.setterId} className="py-2 text-center">
+                        {puzzle.setterId === guesser.id ? (
+                          <span className="text-gray-300">—</span>
+                        ) : puzzle.guessCounts[guesser.id] !== null ? (
+                          <span className="text-base font-bold text-gray-900">
+                            {puzzle.guessCounts[guesser.id]}
+                          </span>
+                        ) : (
+                          <GreyQuestionTile />
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              : puzzleStats.map((puzzle) => (
+                  <tr key={puzzle.setterId} className="border-b border-gray-100">
+                    <td className="py-2 font-medium text-gray-900">
+                      {puzzle.setterDisplay}
+                    </td>
+                    {CONFIG.players.map((guesser) => (
+                      <td key={guesser.id} className="py-2 text-center">
+                        {puzzle.setterId === guesser.id ? (
+                          <span className="text-gray-300">—</span>
+                        ) : puzzle.guessCounts[guesser.id] !== null ? (
+                          <span className="text-base font-bold text-gray-900">
+                            {puzzle.guessCounts[guesser.id]}
+                          </span>
+                        ) : (
+                          <GreyQuestionTile />
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

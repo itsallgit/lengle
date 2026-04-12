@@ -13,6 +13,8 @@ app/dist/
 
 # Environment variables — never commit (contain AWS resource IDs)
 app/.env.local
+app/.env.prod
+app/.env.nonprod
 
 # CDK deploy outputs — contain AWS resource IDs, not secrets but not needed in repo
 cdk-outputs.json

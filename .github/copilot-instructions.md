@@ -1,57 +1,61 @@
-# Lengle — Copilot Repository Instructions
+# Lengle — Copilot Instructions
 
-## About this project
-Lengle is a private family word puzzle game built as a static React (Vite + TypeScript + Tailwind CSS)
-app hosted on AWS S3 static website hosting. All game data is stored as JSON files in S3.
-There is no backend API, no database, and no server.
+## Project overview
 
-Full game rules: `specs/spec-game-design.md`
-Technical architecture and conventions: `specs/spec-implementation.md`
+Lengle is a private family word puzzle game built as a static React + TypeScript + Tailwind app hosted from AWS S3 website buckets. There is no backend API, no database, and no server-side compute. Game data is stored as JSON in S3 and accessed directly from the browser.
 
-## Release workflow
-All changes ship through a named `release/vX.Y` branch (major + minor only, no patch versions). The release agent manages git, deployment, and merging. You handle code changes in Agent mode.
+Primary implementation references:
+- `specs/spec-game-design.md` for behaviour
+- `specs/spec-implementation.md` for technical architecture
+- `specs/spec-ux-design.md` for visual and interaction rules
 
-**Typical flow:**
-1. Invoke `@release-agent` and say "start v1.1" — it creates the branch, interviews you, and writes `plans/release-v1.1.md`
-2. Review and confirm the plan, then use **`@build-agent`** to implement the code changes — it reviews the plan against the real codebase, asks clarifying questions with recommendations, then implements all phases continuously and self-heals typecheck/lint errors
-3. Come back to `@release-agent` to run checks (`npm run typecheck && npm run lint`), deploy, or close the release
-4. When done, tell the release agent to close the release — it commits, pushes, and squash-merges to `main`
+## Working model
 
-**Standard commit message format:**
-```
-vX.Y: One liner summary of the release
+Use the single-chat orchestrator model by default.
 
-- Change description 1
-- Change description 2
-- Change description 3
-```
+1. Start in `@orchestrator`
+2. Describe the task in natural language
+3. Let the orchestrator route to the correct domain agent based on git state and plan state
+4. Stay in one conversation unless you explicitly need to address a specific agent directly
 
-Plan documents live at `plans/release-vX.Y.md`. One per release.
+## Routing summary
 
-## Architecture rules — never violate these
-- All S3 reads go through `app/src/lib/s3.ts → readJson()` (HTTP GET to S3 website URL)
-- All S3 writes go through `app/src/lib/s3.ts → writeToS3()` (PUT directly to S3 via Cognito credentials)
-- All S3 list operations go through `app/src/lib/s3.ts → listS3Keys()` (directly to S3 via Cognito credentials)
-- Never use the AWS SDK for reads — use `readJson()` with plain fetch instead
-- Never import the AWS SDK directly in components or hooks — always use `app/src/lib/s3.ts`
-- All scoring constants come from `CONFIG.scoring` in `app/src/lib/config.ts` — never hardcode +0/+1/+3
-- All date/reset logic goes through `app/src/lib/date.ts`
-- Player names, IDs, and default emojis are defined only in `CONFIG.players` in `app/src/lib/config.ts`
-- Player ID and emoji map are shared app-wide via `PlayerContext` in `app/src/App.tsx` — never prop-drill them
-- TypeScript strict mode is on — no `any` types
-- Always bump the `version` field in `app/package.json` to match the release version (e.g. `"1.9.0"` for release `v1.9`) — this value is injected by Vite as `__APP_VERSION__` and displayed on the home screen
+- On `main` with no `plans/draft.md`: feature planning routes to Plan Agent
+- On `main` with `plans/draft.md` but no Technical Implementation section: design routes to Design Agent
+- On `main` with a fully designed `plans/draft.md`: release start routes to Release Agent
+- On `release/vX.Y` or `hotfix/vX.Y.Z`: implementation routes to Build Agent
+- On `release/vX.Y` or `hotfix/vX.Y.Z`: deploy-for-testing, release status, and close-release routes to Release Agent
+- On any branch: production deploys, backups, restores, cleanup, and rollback routes to Production Agent
+
+## Environment model
+
+- Production uses the `BucketName` and `WebsiteUrl` outputs
+- Non-production uses the `NonProdBucketName` and `NonProdWebsiteUrl` outputs
+- Both environments share the same Cognito identity pool
+- Build env files are generated with `cd app && npm run env:setup`
+- `app/.env.local` is only for local `npm run dev`
+
+## Standards location
+
+Operational and coding rules now live in reusable skills under `.github/skills/`:
+- `git-standards`
+- `deployment`
+- `environments`
+- `data-management`
+- `code-standards`
+
+Do not duplicate those standards across every agent unless a workflow needs a direct reminder.
 
 ## Key files
-- `specs/spec-game-design.md` — all game rules and acceptance criteria (source of truth for behaviour)
-- `specs/spec-implementation.md` — technical architecture and conventions (source of truth for implementation)
-- `plans/` — one plan document per release, named `release-vX.X.md`
-- `app/src/lib/config.ts` — all tuneable config
-- `app/src/lib/s3.ts` — all S3 operations
-- `app/src/lib/scoring.ts` — guess scoring
-- `app/src/lib/date.ts` — date and reset logic
-- `app/src/types/index.ts` — all TypeScript interfaces
-- `backups/` — timestamped game data saves committed to git, managed by the release agent (Routine D)
 
-## Spec update rule
-When making ANY change to game behaviour or implementation, update the relevant section
-of `specs/spec-game-design.md` and/or `specs/spec-implementation.md` in the same commit as the code change.
+- `plans/draft.md` for pre-release planning
+- `plans/release-vX.Y.md` for active release execution
+- `app/src/lib/s3.ts` for all S3 access
+- `app/src/lib/config.ts` for player and scoring configuration
+- `app/src/lib/date.ts` for day and reset logic
+- `app/src/types/index.ts` for shared TypeScript types
+- `scripts/` for deploy, backup, restore, delete, sync, and env generation utilities
+
+## Release note
+
+Always bump `app/package.json` to the release version. That version is injected into the app as `__APP_VERSION__`.
