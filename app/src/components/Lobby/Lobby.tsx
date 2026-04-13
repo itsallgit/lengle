@@ -146,10 +146,23 @@ export default function Lobby() {
     if (dateStr === todayDate) {
       const statusKey = `data/days/${todayDate}/status.json`
       const currentStatus = await readJson<DayStatus>(statusKey)
-      const mergedWordsSet: Record<string, boolean> = {
-        ...(currentStatus?.words_set ?? {}),
-        [playerId]: true,
+
+      // When the status file is missing, reconstruct words_set from individual
+      // word files so we don't overwrite other players' already-set entries.
+      let mergedWordsSet: Record<string, boolean>
+      if (currentStatus !== null) {
+        mergedWordsSet = { ...currentStatus.words_set, [playerId]: true }
+      } else {
+        const wordChecks = await Promise.all(
+          CONFIG.players.map(p =>
+            readJson<PuzzleWord>(`data/words/${todayDate}/${p.id}.json`)
+              .then(pw => [p.id, pw !== null] as const),
+          ),
+        )
+        mergedWordsSet = Object.fromEntries(wordChecks)
+        mergedWordsSet[playerId] = true
       }
+
       const allSet = CONFIG.players.every(p => mergedWordsSet[p.id] === true)
       const newStatus: DayStatus = {
         date: todayDate,

@@ -45,7 +45,23 @@ export default function PuzzleView() {
     await writeToS3(`data/words/${date}/${playerId}.json`, wordData)
     const statusKey = `data/days/${date}/status.json`
     const currentStatus = await readJson<DayStatus>(statusKey)
-    const wordsSet = { ...(currentStatus?.words_set ?? {}), [playerId]: true }
+
+    // When the status file is missing, reconstruct words_set from individual
+    // word files so we don't overwrite other players' already-set entries.
+    let wordsSet: Record<string, boolean>
+    if (currentStatus !== null) {
+      wordsSet = { ...currentStatus.words_set, [playerId]: true }
+    } else {
+      const wordChecks = await Promise.all(
+        CONFIG.players.map(p =>
+          readJson<PuzzleWord>(`data/words/${date}/${p.id}.json`)
+            .then(pw => [p.id, pw !== null] as const),
+        ),
+      )
+      wordsSet = Object.fromEntries(wordChecks)
+      wordsSet[playerId] = true
+    }
+
     const allSet = CONFIG.players.every(p => wordsSet[p.id] === true)
     await writeToS3(statusKey, { date, words_set: wordsSet, unlocked: allSet })
     setOwnWord(word.toUpperCase())

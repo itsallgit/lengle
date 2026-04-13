@@ -30,8 +30,10 @@ export default function PuzzlePanel({
   /** Current player's guesses on this puzzle, filtered to setterId. */
   const [myGuesses, setMyGuesses] = useState<GuessEntry[]>([])
   const [savedOverrides, setSavedOverrides] = useState<(TileOverride | null)[][] | null>(null)
+  const [savedGuessCount, setSavedGuessCount] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(true)
   const [inputValue, setInputValue] = useState('')
   const [currentOverrides, setCurrentOverrides] = useState<(TileOverride | null)[][]>([])
@@ -72,6 +74,7 @@ export default function PuzzlePanel({
       )
       if (savedEntry) {
         setSavedOverrides(savedEntry.tile_overrides as (TileOverride | null)[][])
+        setSavedGuessCount(savedEntry.guesses_to_solve)
       }
 
       setIsLoading(false)
@@ -123,6 +126,7 @@ export default function PuzzlePanel({
   async function handleGuessSubmit(word: string) {
     if (!targetWord || isSubmitting) return
     setIsSubmitting(true)
+    setSubmitError(null)
 
     try {
       const result = scoreGuess(word, targetWord)
@@ -132,6 +136,15 @@ export default function PuzzlePanel({
       // the race condition where both PuzzlePanel instances share the same file.
       // Never cache the full file in state — always re-read here on submit.
       const existingFile = await readJson<PlayerGuesses>(guessFileKey)
+
+      // If the read failed but we already have guesses in local state, proceeding
+      // would overwrite the file with a single-entry file, silently losing all
+      // prior history. Abort so the user can retry safely.
+      if (existingFile === null && myGuesses.length > 0) {
+        setSubmitError('Could not save your guess — please try again.')
+        return
+      }
+
       const existingGuesses = existingFile?.guesses ?? []
 
       // guess_number is per-puzzle: count existing guesses for this setter + 1.
@@ -190,7 +203,7 @@ export default function PuzzlePanel({
         <span className="text-lg font-bold text-white">{setterName}&apos;s word</span>
         <div className="flex items-center gap-3">
           {isSolved
-            ? <span className="text-sm text-green-400 font-semibold">✓ {myGuesses.length} {myGuesses.length === 1 ? 'guess' : 'guesses'}</span>
+            ? <span className="text-sm text-green-400 font-semibold">✓ {savedGuessCount ?? myGuesses.length} {(savedGuessCount ?? myGuesses.length) === 1 ? 'guess' : 'guesses'}</span>
             : myGuesses.length > 0
               ? <span className="text-sm text-gray-400">{myGuesses.length} {myGuesses.length === 1 ? 'guess' : 'guesses'}</span>
               : null
@@ -218,7 +231,7 @@ export default function PuzzlePanel({
           <div className="mt-4">
             {isSolved ? (
               <p className="font-semibold text-green-600">
-                Solved in {myGuesses.length} {myGuesses.length === 1 ? 'guess' : 'guesses'} 🎉
+                Solved in {savedGuessCount ?? myGuesses.length} {(savedGuessCount ?? myGuesses.length) === 1 ? 'guess' : 'guesses'} 🎉
               </p>
             ) : !targetWord ? (
               <p className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
@@ -226,6 +239,11 @@ export default function PuzzlePanel({
               </p>
             ) : (
               <>
+                {submitError && (
+                  <p className="mb-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+                    {submitError}
+                  </p>
+                )}
                 <GuessInput
                   value={inputValue}
                   onValueChange={handleNativeInput}
