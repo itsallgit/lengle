@@ -102,8 +102,8 @@ lengle/
 ├── infra/
 │   └── lib/lengle-stack.ts
 ├── plans/
-│   ├── draft.md
-│   └── release-vX.Y.md
+│   ├── vX.Y.0-release.md
+│   └── vX.Y.Z-hotfix.md
 ├── scripts/
 │   ├── deploy.sh
 │   ├── backup-data.sh
@@ -257,17 +257,19 @@ Reusable repo standards live in `.github/skills/`:
 The orchestrator checks:
 
 1. Current git branch
-2. Whether `plans/draft.md` exists
-3. Whether the matching `plans/release-vX.Y.md` exists on a release branch
+2. Whether an active release or hotfix branch exists (`git branch -a --list 'release/*' --list 'hotfix/*'`)
+3. Whether the matching plan file exists on the current branch (`plans/vX.Y.0-release.md` or `plans/vX.Y.Z-hotfix.md`)
 
 Routing rules:
 
-- On `main` without `plans/draft.md`: planning requests go to Plan Agent
-- On `main` with a draft but no technical section: design requests go to Design Agent
-- On `main` with a fully designed draft: release-start requests go to Release Agent
-- On `release/vX.Y` or `hotfix/vX.Y.Z`: implementation goes to Build Agent
+- On `main` without an active release branch: new change requests route to Release Agent (create branch), then Plan Agent
+- On `main` with an active release branch: ask user whether to add to the existing release or defer
+- On `release/vX.Y` or `hotfix/vX.Y.Z` with a plan but no technical section: design requests go to Design Agent
+- On `release/vX.Y` or `hotfix/vX.Y.Z` with a fully designed plan: implementation goes to Build Agent (after user review)
 - On `release/vX.Y` or `hotfix/vX.Y.Z`: deployment-for-testing and close-release go to Release Agent
 - On any branch: production operations go to Production Agent
+
+The orchestrator uses guided handovers: when one agent completes, it presents a summary block (what was done, commit reference, recommended next step) and waits for user acknowledgement before routing to the next agent.
 
 ### 8.4 Plan ownership model
 
@@ -279,15 +281,17 @@ Routing rules:
 
 Standard release:
 
-1. Plan Agent writes `plans/draft.md`
-2. Design Agent appends the technical plan and updates specs
-3. Release Agent creates `release/vX.Y`, renames the plan, and syncs prod data to non-prod
-4. Build Agent implements the plan and validates `typecheck` + `lint`
-5. Release Agent deploys to non-prod and creates a WIP commit
-6. Release Agent closes the release with a squash merge to `main`
+1. Release Agent creates `release/vX.Y` branch and syncs prod data to non-prod
+2. Plan Agent writes `plans/vX.Y.0-release.md` on the release branch
+3. Design Agent appends the technical plan and updates specs
+4. Build Agent implements the plan, committing after each phase, and validates `typecheck` + `lint`
+5. Release Agent deploys to non-prod
+6. Release Agent closes the release: snapshots game data, pushes the release branch to origin, squash-merges to `main`, deletes local branch
 7. Production Agent tags the release, backs up prod, and deploys to prod
 
-Hotfixes follow the same flow but use `hotfix/vX.Y.Z` branches and patch-version tags.
+Each agent commits its work before handoff. The orchestrator presents a guided handover summary between each step, and the user acknowledges before the next agent begins.
+
+Hotfixes follow the same flow but use `hotfix/vX.Y.Z` branches, `plans/vX.Y.Z-hotfix.md` plan files, and patch-version tags.
 
 ### 8.6 Rollback
 
@@ -325,4 +329,4 @@ Rules:
 - Technical architecture: `specs/spec-implementation.md`
 - UX rules: `specs/spec-ux-design.md`
 - Repo routing and overview: `.github/copilot-instructions.md`
-- Active implementation plan: `plans/draft.md` or `plans/release-vX.Y.md`
+- Active implementation plan: `plans/vX.Y.0-release.md` or `plans/vX.Y.Z-hotfix.md`

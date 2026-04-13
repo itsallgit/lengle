@@ -37,4 +37,4 @@ aws s3 sync "s3://${BUCKET_NAME}/data/" "${DEST}/"
 
 echo ""
 echo "Backup complete -> ${DEST}/"
-echo "Next step: git add backups/ && git commit -m \"chore: backup game data ${TIMESTAMP}\""
+echo "Next step: git add backups/ && git commit -m \"backup: game data ${TIMESTAMP}\""

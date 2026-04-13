@@ -13,7 +13,7 @@ Use this prompt to back up all game data from S3 before making destructive chang
 4. Stage and commit the backup to git:
    ```
    git add backups/
-   git commit -m "chore: backup game data $(date +%Y%m%d-%H%M%S)"
+   git commit -m "backup: game data $(date +%Y%m%d-%H%M%S)"
    ```
 5. Confirm the commit was created and report the commit hash
 6. Report success: backup is saved in git and can be restored with `restore-game-data` prompt

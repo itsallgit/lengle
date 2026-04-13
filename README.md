@@ -40,7 +40,7 @@ Use `@orchestrator` as the default entry point. The orchestrator reads git state
 Agents:
 
 - `@orchestrator`: single-chat router and workflow chainer
-- `@plan-agent`: writes `plans/draft.md` with overview, acceptance criteria, and user testing
+- `@plan-agent`: writes the release plan (`plans/vX.Y.0-release.md`) on the active release branch with overview, acceptance criteria, and user testing
 - `@design-agent`: appends technical implementation, technical verification, and decisions; updates specs
 - `@build-agent`: implements the active release plan and fixes typecheck/lint errors
 - `@release-agent`: creates release branches, owns non-prod deploys, manages WIP commits, closes releases
@@ -52,15 +52,17 @@ For the conversational routing model used in Paseo and Copilot CLI, see `paseo-c
 
 ## Release flow
 
-1. On `main`, ask `@orchestrator` to plan the change. This routes to Plan Agent and creates `plans/draft.md`.
-2. Ask `@orchestrator` to design it. This routes to Design Agent, which updates specs and appends the technical plan.
-3. Ask `@orchestrator` to start the release. This routes to Release Agent, which creates `release/vX.Y`, renames the plan, and syncs prod data to non-prod.
-4. Ask `@orchestrator` to implement it. This routes to Build Agent, which resumes from the first incomplete phase and validates with `npm run typecheck && npm run lint`.
-5. After implementation, Release Agent deploys to non-prod with `bash scripts/deploy.sh nonprod` and creates a WIP commit.
-6. When testing is complete, ask `@orchestrator` to close the release. Release Agent performs the squash merge to `main`.
+1. Describe the change to `@orchestrator`. It routes to Release Agent, which creates `release/vX.Y` and syncs prod data to non-prod.
+2. The orchestrator recommends Plan Agent next. Plan Agent writes `plans/vX.Y.0-release.md` on the release branch.
+3. Ask `@orchestrator` to design it. Design Agent updates specs and appends the technical plan.
+4. Review the technical plan, then ask `@orchestrator` to implement it. Build Agent resumes from the first incomplete phase, committing after each phase, and validates with `npm run typecheck && npm run lint`.
+5. After implementation, ask `@orchestrator` to deploy for testing. Release Agent deploys to non-prod with `bash scripts/deploy.sh nonprod`.
+6. When testing is complete, ask `@orchestrator` to close the release. Release Agent snapshots game data, pushes the release branch to origin as an archive, squash-merges to `main`, and deletes the local branch.
 7. Ask `@orchestrator` to deploy to production. Production Agent tags the release, backs up prod data, and deploys with `bash scripts/deploy.sh prod`.
 
-Hotfixes use `hotfix/vX.Y.Z` branches and follow the same Plan -> Design -> Build -> Release -> Production pattern.
+Each step includes a guided handover: the orchestrator summarises what was done, shows the commit, and recommends the next step. The user acknowledges before proceeding.
+
+Hotfixes use `hotfix/vX.Y.Z` branches with `plans/vX.Y.Z-hotfix.md` plan files and follow the same Plan → Design → Build → Release → Production pattern.
 
 ## Local development
 

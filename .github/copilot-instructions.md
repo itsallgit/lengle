@@ -20,12 +20,10 @@ Use the single-chat orchestrator model by default.
 
 ## Routing summary
 
-- On `main` with no `plans/draft.md`: feature planning routes to Plan Agent
-- On `main` with `plans/draft.md` but no Technical Implementation section: design routes to Design Agent
-- On `main` with a fully designed `plans/draft.md`: release start routes to Release Agent
-- On `release/vX.Y` or `hotfix/vX.Y.Z`: implementation routes to Build Agent
-- On `release/vX.Y` or `hotfix/vX.Y.Z`: deploy-for-testing, release status, and close-release routes to Release Agent
-- On any branch: production deploys, backups, restores, cleanup, and rollback routes to Production Agent
+- On `main` with no active release branch: new change requests route to Release Agent to create a branch, then Plan Agent
+- On `main` with an active release branch: orchestrator asks user whether to add to it or defer
+- On `release/vX.Y` or `hotfix/vX.Y.Z`: routes to the appropriate agent based on plan state (Plan → Design → Build → Release)
+- On any branch: production deploys, backups, restores, cleanup, and rollback route to Production Agent
 
 ## Environment model
 
@@ -48,8 +46,8 @@ Do not duplicate those standards across every agent unless a workflow needs a di
 
 ## Key files
 
-- `plans/draft.md` for pre-release planning
-- `plans/release-vX.Y.md` for active release execution
+- `plans/vX.Y.0-release.md` for active release plans (on release branches)
+- `plans/vX.Y.Z-hotfix.md` for hotfix plans (on hotfix branches)
 - `app/src/lib/s3.ts` for all S3 access
 - `app/src/lib/config.ts` for player and scoring configuration
 - `app/src/lib/date.ts` for day and reset logic

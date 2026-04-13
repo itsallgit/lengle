@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "version": "1.16",
+      "label": "Apr 2026",
+      "features": [
+        {
+          "emoji": "🤖",
+          "title": "Smarter release workflow",
+          "description": "Release branches are now created before planning begins, giving every change a home from day one. Agent handovers are guided with clear summaries at each step."
+        }
+      ]
+    },
+    {
       "version": "1.15",
       "label": "Apr 2026",
       "features": [
