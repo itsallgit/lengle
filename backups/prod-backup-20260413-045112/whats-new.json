@@ -1,0 +1,35 @@
+{
+  "releases": [
+    {
+      "version": "1.15",
+      "label": "Apr 2026",
+      "features": [
+        {
+          "emoji": "🤖",
+          "title": "Ship features from anywhere",
+          "description": "The entire development pipeline — design, code, and deploy — runs through an AI-powered workflow. New features can be built and shipped from any device, any time."
+        },
+        {
+          "emoji": "🎨",
+          "title": "Smarter keyboard colours",
+          "description": "Keys now show every colour they've earned across your guesses — no more single-colour surprises."
+        },
+        {
+          "emoji": "⚙️",
+          "title": "Keyboard toggle",
+          "description": "Prefer typing? Head to Settings to hide the on-screen keyboard."
+        },
+        {
+          "emoji": "📅",
+          "title": "Score history table",
+          "description": "All Time scores now has a day-by-day breakdown. Toggle between Guesses and Points to see who showed up."
+        },
+        {
+          "emoji": "🏆",
+          "title": "Row winners highlighted",
+          "description": "The best score in each history row glows green. Who's been the sharpest, day by day?"
+        }
+      ]
+    }
+  ]
+}
